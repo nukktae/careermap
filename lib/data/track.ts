@@ -23,6 +23,8 @@ export interface Application {
   updatedAt?: number;
   hasNotes: boolean;
   outcome?: ApplicationOutcome;
+  /** 정렬 순서 (같은 상태 내에서, 낮을수록 위에 표시) */
+  sortOrder?: number;
 }
 
 export interface TimelineEvent {
@@ -182,6 +184,30 @@ export function moveApplication(id: string, newStatus: ApplicationStatus): void 
     const app = getApplicationById(id);
     if (app && !app.appliedAt) updateApplication(id, { appliedAt: Date.now() });
   }
+}
+
+/**
+ * 같은 상태(status) 내에서 애플리케이션 순서 변경
+ */
+export function reorderApplicationsInStatus(
+  status: ApplicationStatus,
+  orderedIds: string[]
+): void {
+  const list = getApplicationsInternal();
+  const updates: Array<{ id: string; sortOrder: number }> = orderedIds.map(
+    (id, index) => ({ id, sortOrder: index })
+  );
+  for (const { id, sortOrder } of updates) {
+    const app = list.find((a) => a.id === id);
+    if (app && app.status === status) {
+      const idx = list.findIndex((a) => a.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx]!, sortOrder, updatedAt: Date.now() };
+      }
+    }
+  }
+  applicationsCache = list;
+  saveApplications(list);
 }
 
 export function addApplication(jobId: number, status: ApplicationStatus = "interested"): string {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ReactNode } from "react";
 import type { ApplicationStatus } from "@/lib/data/track";
 
@@ -8,6 +9,7 @@ export interface KanbanColumnProps {
   status: ApplicationStatus;
   label: string;
   count: number;
+  sortableItemIds?: string[];
   children: ReactNode;
 }
 
@@ -15,6 +17,7 @@ export function KanbanColumn({
   status,
   label,
   count,
+  sortableItemIds = [],
   children,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -30,7 +33,12 @@ export function KanbanColumn({
         <h3 className="font-semibold text-foreground text-sm">{label}</h3>
         <p className="text-xs text-foreground-muted mt-0.5">{count}건</p>
       </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">{children}</div>
+      <SortableContext
+        items={sortableItemIds}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="flex-1 overflow-y-auto p-2 space-y-2">{children}</div>
+      </SortableContext>
     </div>
   );
 }
