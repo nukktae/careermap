@@ -24,12 +24,15 @@ export interface ApplicationCardProps {
   application: Application;
   job: Job | undefined;
   dragHandle?: React.ReactNode;
+  /** 드래그 직후 클릭 시 상세 페이지 이동 방지 */
+  preventLinkNavigation?: boolean;
 }
 
 export function ApplicationCard({
   application,
   job,
   dragHandle,
+  preventLinkNavigation = false,
 }: ApplicationCardProps) {
   if (!job) return null;
   const dateLabel = application.appliedAt
@@ -39,13 +42,24 @@ export function ApplicationCard({
   return (
     <Link
       href={`/track/${application.id}`}
+      draggable={false}
+      onDragStart={(e) => e.preventDefault()}
+      onClickCapture={(e) => {
+        if (preventLinkNavigation) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
       className="bg-card rounded-xl border border-border p-4 hover:border-primary-200 dark:hover:border-primary-800 hover:shadow-md transition-all block group"
     >
       <div className="flex items-start gap-3">
         {dragHandle && (
           <div
             className="shrink-0 cursor-grab active:cursor-grabbing text-foreground-muted hover:text-foreground"
-            onClick={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
           >
             {dragHandle}
           </div>

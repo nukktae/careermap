@@ -16,6 +16,7 @@ import {
   getApplications,
   getStatusLabel,
   moveApplication,
+  reorderApplicationsInStatus,
   exportApplicationsToCSV,
   APPLICATION_STATUSES,
   type Application,
@@ -40,6 +41,7 @@ export default function TrackPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [dragJustEnded, setDragJustEnded] = useState(false);
 
   const refreshApplications = useCallback(() => {
     setApplications(getApplications());
@@ -57,14 +59,41 @@ export default function TrackPage() {
   );
 
   function handleDragEnd(event: DragEndEvent) {
+    setDragJustEnded(true);
+    setTimeout(() => setDragJustEnded(false), 200);
     const { active, over } = event;
     if (!over?.id || typeof active.id !== "string") return;
-    const newStatus = over.id as ApplicationStatus;
-    if (!APPLICATION_STATUSES.includes(newStatus)) return;
     const app = applications.find((a) => a.id === active.id);
-    if (!app || app.status === newStatus) return;
-    moveApplication(active.id, newStatus);
-    refreshApplications();
+    if (!app) return;
+
+    const overId = String(over.id);
+    const isOverColumn = APPLICATION_STATUSES.includes(overId as ApplicationStatus);
+    const overApp = applications.find((a) => a.id === overId);
+
+    if (overApp && !isOverColumn) {
+      // 다른 카드 위에 드롭: 같은 컬럼이면 순서 변경, 다르면 상태 변경
+      if (overApp.status === app.status) {
+        const ids = byStatus[app.status].map((a) => a.id);
+        const oldIndex = ids.indexOf(active.id);
+        const newIndex = ids.indexOf(overId);
+        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+          const [removed] = ids.splice(oldIndex, 1);
+          ids.splice(newIndex, 0, removed);
+          reorderApplicationsInStatus(app.status, ids);
+          refreshApplications();
+        }
+      } else {
+        moveApplication(active.id, overApp.status);
+        refreshApplications();
+      }
+    } else if (isOverColumn) {
+      // 컬럼(빈 영역)에 드롭: 상태 변경
+      const newStatus = overId as ApplicationStatus;
+      if (app.status !== newStatus) {
+        moveApplication(active.id, newStatus);
+        refreshApplications();
+      }
+    }
   }
 
   const filteredBySearch = applications.filter((app) => {
@@ -80,7 +109,10 @@ export default function TrackPage() {
 
   const byStatus = APPLICATION_STATUSES.reduce(
     (acc, status) => {
-      acc[status] = filteredBySearch.filter((a) => a.status === status);
+      const items = filteredBySearch
+        .filter((a) => a.status === status)
+        .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999));
+      acc[status] = items;
       return acc;
     },
     {} as Record<ApplicationStatus, Application[]>
@@ -146,12 +178,14 @@ export default function TrackPage() {
                 status={status}
                 label={getStatusLabel(status)}
                 count={byStatus[status].length}
+                sortableItemIds={byStatus[status].map((a) => a.id)}
               >
                 {byStatus[status].map((app) => (
                   <DraggableApplicationCard
                     key={app.id}
                     application={app}
                     job={getJobById(app.jobId)}
+                    preventLinkNavigation={dragJustEnded}
                   />
                 ))}
               </KanbanColumn>

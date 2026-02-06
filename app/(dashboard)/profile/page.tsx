@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { User, Mail, Phone, GraduationCap, Code, Briefcase, FileText, Download } from "lucide-react";
+import { User, Mail, Phone, GraduationCap, Code, Briefcase, FileText, Download, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getProfile } from "@/lib/data/profile";
+import { getProfile, updateProfile } from "@/lib/data/profile";
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -16,14 +16,41 @@ function getInitials(name: string): string {
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ReturnType<typeof getProfile> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setProfile(getProfile());
   }, []);
 
   function handlePhotoClick() {
-    // Mock: no real upload
-    if (typeof window !== "undefined") window.alert("사진 변경 기능은 준비 중이에요.");
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check if file is an image
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 업로드할 수 있어요.");
+      return;
+    }
+
+    // Limit size to 2MB for localStorage
+    if (file.size > 2 * 1024 * 1024) {
+      alert("파일 크기가 너무 커요. 2MB 이하의 이미지를 사용해주세요.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        updateProfile({ photoUrl: base64 });
+        setProfile((prev) => prev ? { ...prev, photoUrl: base64 } : null);
+      }
+    };
+    reader.readAsDataURL(file);
   }
 
   function handleResumeDownload() {
@@ -62,17 +89,30 @@ export default function ProfilePage() {
       {/* Photo */}
       <section className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-6">
-          <button
-            type="button"
-            onClick={handlePhotoClick}
-            className="shrink-0 w-24 h-24 rounded-full bg-background-secondary flex items-center justify-center text-2xl font-bold text-foreground-muted hover:bg-background-tertiary transition-colors"
-          >
-            {profile.photoUrl ? (
-              <img src={profile.photoUrl} alt="" className="w-full h-full rounded-full object-cover" />
-            ) : (
-              getInitials(profile.name)
-            )}
-          </button>
+          <div className="relative group">
+            <button
+              type="button"
+              onClick={handlePhotoClick}
+              className="shrink-0 w-24 h-24 rounded-full bg-background-secondary flex items-center justify-center text-2xl font-bold text-foreground-muted hover:bg-background-tertiary transition-colors overflow-hidden border border-border"
+            >
+              {profile.photoUrl ? (
+                <img src={profile.photoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                getInitials(profile.name)
+              )}
+              
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-6 h-6 text-white" />
+              </div>
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden"
+            />
+          </div>
           <div>
             <p className="text-sm font-medium text-foreground">프로필 사진</p>
             <button
