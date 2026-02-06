@@ -124,7 +124,9 @@ export function PricingSection() {
                 <Button
                   asChild
                   className={`w-full mb-6 ${
-                    plan.popular ? "" : "bg-foreground hover:bg-foreground-hover"
+                    plan.popular
+                      ? ""
+                      : "bg-white hover:bg-gray-100 text-foreground border border-border dark:bg-white dark:hover:bg-gray-100 dark:text-foreground"
                   }`}
                   variant={plan.popular ? "default" : "secondary"}
                 >

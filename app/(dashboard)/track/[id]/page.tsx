@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -23,16 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  getApplicationDetail,
-  saveApplicationDetail,
-  updateApplication,
-  getStatusLabel,
-  APPLICATION_STATUSES,
-  type ApplicationStatus,
-  type ApplicationContact,
-  type ApplicationReminder,
-} from "@/lib/data/track";
+import { useApplications } from "@/lib/hooks/use-applications";
+import { getStatusLabel, APPLICATION_STATUSES } from "@/lib/data/track";
+import type { ApplicationStatus, ApplicationContact, ApplicationReminder } from "@/lib/data/track";
+import type { Application, ApplicationDetailData } from "@/lib/data/track";
 import { getJobById } from "@/lib/data/jobs";
 
 function formatDate(ts: number): string {
@@ -55,9 +49,12 @@ function formatDateTime(ts: number): string {
 export default function ApplicationDetailPage() {
   const params = useParams();
   const id = params?.id ? String(params.id) : "";
-  const [detail, setDetail] = useState<ReturnType<typeof getApplicationDetail>>(
-    undefined
-  );
+  const {
+    getApplicationDetail,
+    saveApplicationDetail,
+    updateApplication,
+  } = useApplications();
+  const [detail, setDetail] = useState<(Application & ApplicationDetailData) | null | undefined>(undefined);
   const [notesValue, setNotesValue] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactRole, setContactRole] = useState("");
@@ -65,11 +62,16 @@ export default function ApplicationDetailPage() {
   const [reminderLabel, setReminderLabel] = useState("");
   const [reminderDate, setReminderDate] = useState("");
 
-  useEffect(() => {
-    const d = getApplicationDetail(id);
-    setDetail(d);
+  const loadDetail = useCallback(async () => {
+    if (!id) return;
+    const d = await getApplicationDetail(id);
+    setDetail(d ?? null);
     setNotesValue(d?.notes ?? "");
-  }, [id]);
+  }, [id, getApplicationDetail]);
+
+  useEffect(() => {
+    loadDetail();
+  }, [loadDetail]);
 
   if (id && detail === undefined) {
     return (
@@ -97,20 +99,20 @@ export default function ApplicationDetailPage() {
 
   const job = getJobById(detail.jobId);
 
-  function handleStatusChange(newStatus: ApplicationStatus) {
-    updateApplication(id, { status: newStatus });
-    setDetail(getApplicationDetail(id));
+  async function handleStatusChange(newStatus: ApplicationStatus) {
+    await updateApplication(id, { status: newStatus });
+    await loadDetail();
   }
 
-  function handleNotesBlur() {
+  async function handleNotesBlur() {
     if (!detail) return;
     if (notesValue !== (detail.notes ?? "")) {
-      saveApplicationDetail(id, { notes: notesValue });
-      setDetail(getApplicationDetail(id));
+      await saveApplicationDetail(id, { notes: notesValue });
+      await loadDetail();
     }
   }
 
-  function addContact() {
+  async function addContact() {
     if (!detail) return;
     if (!contactName.trim()) return;
     const newContact: ApplicationContact = {
@@ -120,21 +122,21 @@ export default function ApplicationDetailPage() {
       email: contactEmail.trim() || undefined,
     };
     const contacts = [...(detail.contacts ?? []), newContact];
-    saveApplicationDetail(id, { contacts });
-    setDetail(getApplicationDetail(id));
+    await saveApplicationDetail(id, { contacts });
+    await loadDetail();
     setContactName("");
     setContactRole("");
     setContactEmail("");
   }
 
-  function removeContact(contactId: string) {
+  async function removeContact(contactId: string) {
     if (!detail) return;
     const contacts = (detail.contacts ?? []).filter((c) => c.id !== contactId);
-    saveApplicationDetail(id, { contacts });
-    setDetail(getApplicationDetail(id));
+    await saveApplicationDetail(id, { contacts });
+    await loadDetail();
   }
 
-  function addReminder() {
+  async function addReminder() {
     if (!detail) return;
     if (!reminderLabel.trim() || !reminderDate) return;
     const newReminder: ApplicationReminder = {
@@ -143,17 +145,17 @@ export default function ApplicationDetailPage() {
       dueAt: new Date(reminderDate).getTime(),
     };
     const reminders = [...(detail.reminders ?? []), newReminder];
-    saveApplicationDetail(id, { reminders });
-    setDetail(getApplicationDetail(id));
+    await saveApplicationDetail(id, { reminders });
+    await loadDetail();
     setReminderLabel("");
     setReminderDate("");
   }
 
-  function removeReminder(reminderId: string) {
+  async function removeReminder(reminderId: string) {
     if (!detail) return;
     const reminders = (detail.reminders ?? []).filter((r) => r.id !== reminderId);
-    saveApplicationDetail(id, { reminders });
-    setDetail(getApplicationDetail(id));
+    await saveApplicationDetail(id, { reminders });
+    await loadDetail();
   }
 
   return (

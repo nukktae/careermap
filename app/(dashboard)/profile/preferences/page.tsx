@@ -14,9 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { useProfile } from "@/lib/hooks/use-profile";
 import {
-  getPreferences,
-  updatePreferences,
   JOB_TYPE_LABELS,
   LOCATION_LABELS,
   LANGUAGE_LABELS,
@@ -33,17 +32,13 @@ const SALARY_MIN = 0;
 const SALARY_MAX = 10000; // 만원
 
 export default function PreferencesPage() {
-  const [mounted, setMounted] = useState(false);
+  const { preferences: initialPrefs, isLoading, updatePreferences } = useProfile();
   const [saved, setSaved] = useState(false);
-  const [prefs, setPrefs] = useState<ReturnType<typeof getPreferences> | null>(null);
+  const [prefs, setPrefs] = useState<ReturnType<typeof useProfile>["preferences"] | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted) setPrefs(getPreferences());
-  }, [mounted]);
+    if (!isLoading && initialPrefs) setPrefs(initialPrefs);
+  }, [isLoading, initialPrefs]);
 
   const toggleJobType = (t: JobTypePref) => {
     if (!prefs) return;
@@ -69,23 +64,23 @@ export default function PreferencesPage() {
     setPrefs({ ...prefs, companyTypes: next });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!prefs) return;
-    updatePreferences(prefs);
+    await updatePreferences(prefs);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  if (!mounted || !prefs) {
+  if (isLoading || !prefs) {
     return (
-      <div className="container-app py-12 text-center text-foreground-secondary">
+      <div className="py-12 text-center text-foreground-secondary">
         로딩 중…
       </div>
     );
   }
 
   return (
-    <div className="container-app space-y-6 pb-12">
+    <div className="space-y-6 pb-12">
       <div>
         <h1 className="text-2xl font-bold text-foreground">선호설정</h1>
         <p className="text-foreground-secondary mt-1">

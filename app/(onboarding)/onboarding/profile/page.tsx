@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getProfile, updateProfile } from "@/lib/data/profile";
+import { useProfile } from "@/lib/hooks/use-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,6 +95,7 @@ const defaultParsedData = {
 
 export default function ProfileReviewPage() {
   const router = useRouter();
+  const { profile: initialProfile, isLoading: profileLoading, updateProfile } = useProfile();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>([
     "personal",
@@ -132,25 +133,26 @@ export default function ProfileReviewPage() {
   const [coverLetterText, setCoverLetterText] = useState("");
 
   useEffect(() => {
-    const profile = getProfile();
-    setName(profile.name);
-    setEmail(profile.email);
-    setPhone(profile.phone);
+    if (profileLoading || !initialProfile) return;
+    const profile = initialProfile;
+    setName(profile.name ?? "");
+    setEmail(profile.email ?? "");
+    setPhone(profile.phone ?? "");
     setEducation({
-      university: profile.education.university,
-      major: profile.education.major,
-      graduationYear: profile.education.graduationYear,
-      gpa: profile.education.gpa,
+      university: profile.education?.university ?? "",
+      major: profile.education?.major ?? "",
+      graduationYear: profile.education?.graduationYear ?? "",
+      gpa: profile.education?.gpa ?? "",
       confidence: 0.95,
     });
     setSkills(profile.skills.length ? profile.skills : defaultParsedData.skills.map((s) => s.name));
     setExperience(
       profile.experience.length > 0
         ? profile.experience.map((e) => ({
-            company: e.company,
-            role: e.role,
-            duration: e.duration,
-            description: e.description,
+            company: e.company ?? "",
+            role: e.role ?? "",
+            duration: e.duration ?? "",
+            description: e.description ?? "",
             confidence: 0.95,
           }))
         : defaultParsedData.experience
@@ -158,15 +160,15 @@ export default function ProfileReviewPage() {
     setProjects(
       profile.projects.length > 0
         ? profile.projects.map((p) => ({
-            title: p.title,
-            description: p.description,
-            techStack: [...p.techStack],
+            title: p.title ?? "",
+            description: p.description ?? "",
+            techStack: [...(p.techStack ?? [])],
             confidence: 0.95,
           }))
         : defaultParsedData.projects
     );
     setCoverLetterText(profile.coverLetterText ?? "");
-  }, []);
+  }, [initialProfile, profileLoading]);
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) =>
@@ -308,11 +310,11 @@ export default function ProfileReviewPage() {
         description: p.description,
         techStack: p.techStack,
       }));
-      const current = getProfile();
+      const resumeSectionsBase = initialProfile?.resumeSections ?? {};
       const educationText = [educationData.university, educationData.major, educationData.graduationYear].filter(Boolean).join(", ") || (educationData.gpa && educationData.gpa !== "-" ? `학점 ${educationData.gpa}` : "");
       const experienceText = experienceData.map((x) => `${x.company} | ${x.role} (${x.duration})`).join("\n");
       const projectsText = projectsData.map((p) => `${p.title} – ${p.description} (${p.techStack.join(", ")})`).join("\n");
-      updateProfile({
+      await updateProfile({
         name,
         email,
         phone,
@@ -322,7 +324,7 @@ export default function ProfileReviewPage() {
         projects: projectsData,
         coverLetterText: coverLetterText.trim() || undefined,
         resumeSections: {
-          ...current.resumeSections,
+          ...resumeSectionsBase,
           education: educationText,
           experience: experienceText,
           projects: projectsText,
@@ -438,20 +440,20 @@ export default function ProfileReviewPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">이름</Label>
-                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+                    <Input id="name" value={name ?? ""} onChange={(e) => setName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">이메일</Label>
                     <Input
                       id="email"
                       type="email"
-                      value={email}
+                      value={email ?? ""}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">전화번호</Label>
-                    <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                    <Input id="phone" value={phone ?? ""} onChange={(e) => setPhone(e.target.value)} />
                   </div>
                 </div>
 
@@ -546,7 +548,7 @@ export default function ProfileReviewPage() {
                     <Label htmlFor="university">대학교</Label>
                     <Input
                       id="university"
-                      value={education.university}
+                      value={education.university ?? ""}
                       onChange={(e) => setEducation((prev) => ({ ...prev, university: e.target.value }))}
                     />
                   </div>
@@ -554,7 +556,7 @@ export default function ProfileReviewPage() {
                     <Label htmlFor="major">전공</Label>
                     <Input
                       id="major"
-                      value={education.major}
+                      value={education.major ?? ""}
                       onChange={(e) => setEducation((prev) => ({ ...prev, major: e.target.value }))}
                     />
                   </div>
@@ -562,7 +564,7 @@ export default function ProfileReviewPage() {
                     <Label htmlFor="graduationYear">졸업 연도</Label>
                     <Input
                       id="graduationYear"
-                      value={education.graduationYear}
+                      value={education.graduationYear ?? ""}
                       onChange={(e) => setEducation((prev) => ({ ...prev, graduationYear: e.target.value }))}
                     />
                   </div>
@@ -570,7 +572,7 @@ export default function ProfileReviewPage() {
                     <Label htmlFor="gpa">학점</Label>
                     <Input
                       id="gpa"
-                      value={education.gpa}
+                      value={education.gpa ?? ""}
                       onChange={(e) => setEducation((prev) => ({ ...prev, gpa: e.target.value }))}
                     />
                   </div>
@@ -620,7 +622,7 @@ export default function ProfileReviewPage() {
                 <div className="flex gap-2">
                   <Input
                     placeholder="스킬 추가..."
-                    value={newSkill}
+                    value={newSkill ?? ""}
                     onChange={(e) => setNewSkill(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addSkill()}
                   />
@@ -662,19 +664,19 @@ export default function ProfileReviewPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 min-w-0">
                         <Input
                           placeholder="직무 (예: 프론트엔드 개발 인턴)"
-                          value={exp.role}
+                          value={exp.role ?? ""}
                           onChange={(e) => updateExperience(index, "role", e.target.value)}
                           className="font-medium"
                         />
                         <Input
                           placeholder="회사명"
-                          value={exp.company}
+                          value={exp.company ?? ""}
                           onChange={(e) => updateExperience(index, "company", e.target.value)}
                           className="text-sm text-foreground-secondary"
                         />
                         <Input
                           placeholder="기간 (예: 2024.06 - 2024.08)"
-                          value={exp.duration}
+                          value={exp.duration ?? ""}
                           onChange={(e) => updateExperience(index, "duration", e.target.value)}
                           className="text-sm text-foreground-secondary sm:col-span-2"
                         />
@@ -695,7 +697,7 @@ export default function ProfileReviewPage() {
                     </div>
                     <Textarea
                       placeholder="업무 내용 설명"
-                      value={exp.description}
+                      value={exp.description ?? ""}
                       onChange={(e) => updateExperience(index, "description", e.target.value)}
                       className="min-h-[80px]"
                     />
@@ -738,19 +740,19 @@ export default function ProfileReviewPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 min-w-0">
                         <Input
                           placeholder="자격증명 (예: 정보처리기사)"
-                          value={cert.name}
+                          value={cert.name ?? ""}
                           onChange={(e) => updateCertification(index, "name", e.target.value)}
                           className="font-medium"
                         />
                         <Input
                           placeholder="발급기관"
-                          value={cert.issuer}
+                          value={cert.issuer ?? ""}
                           onChange={(e) => updateCertification(index, "issuer", e.target.value)}
                           className="text-sm text-foreground-secondary"
                         />
                         <Input
                           placeholder="취득일 (예: 2024.05)"
-                          value={cert.date}
+                          value={cert.date ?? ""}
                           onChange={(e) => updateCertification(index, "date", e.target.value)}
                           className="text-sm text-foreground-secondary sm:col-span-2"
                         />
@@ -807,7 +809,7 @@ export default function ProfileReviewPage() {
                     <div className="flex items-start justify-between gap-2">
                       <Input
                         placeholder="프로젝트 제목"
-                        value={project.title}
+                        value={project.title ?? ""}
                         onChange={(e) => updateProject(projectIndex, "title", e.target.value)}
                         className="font-medium flex-1 min-w-0"
                       />
@@ -827,7 +829,7 @@ export default function ProfileReviewPage() {
                     </div>
                     <Textarea
                       placeholder="프로젝트 설명"
-                      value={project.description}
+                      value={project.description ?? ""}
                       onChange={(e) => updateProject(projectIndex, "description", e.target.value)}
                       className="min-h-[60px]"
                     />
@@ -839,7 +841,7 @@ export default function ProfileReviewPage() {
                         >
                           <input
                             type="text"
-                            value={tech}
+                            value={tech ?? ""}
                             onChange={(e) => updateProjectTech(projectIndex, techIndex, e.target.value)}
                             className="w-20 min-w-0 bg-transparent border-none p-0 text-xs focus:outline-none focus:ring-0"
                           />
@@ -917,7 +919,7 @@ export default function ProfileReviewPage() {
             <div className="px-5 pb-5">
               <Textarea
                 placeholder="자기소개서 내용을 입력하거나, PDF/DOCX 업로드 후 추출 결과가 표시됩니다."
-                value={coverLetterText}
+                value={coverLetterText ?? ""}
                 onChange={(e) => setCoverLetterText(e.target.value)}
                 className="min-h-[320px] resize-y rounded-xl border-border bg-background-secondary/50 text-foreground placeholder:text-foreground-muted focus:bg-background py-4 px-4 text-[15px] leading-relaxed"
               />
@@ -987,7 +989,7 @@ export default function ProfileReviewPage() {
           <div className="py-4 space-y-4">
             <Input
               placeholder="직무 검색 (예: 프론트엔드)"
-              value={jobSearchQuery}
+              value={jobSearchQuery ?? ""}
               onChange={(e) => setJobSearchQuery(e.target.value)}
               className="rounded-xl bg-background-secondary border-border"
             />
@@ -1018,7 +1020,7 @@ export default function ProfileReviewPage() {
             <div className="flex gap-2">
               <Input
                 placeholder="직무 직접 입력"
-                value={customJobInput}
+                value={customJobInput ?? ""}
                 onChange={(e) => setCustomJobInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {

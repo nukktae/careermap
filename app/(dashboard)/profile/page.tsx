@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { User, Mail, Phone, GraduationCap, Code, Briefcase, FileText, Download, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getProfile, updateProfile } from "@/lib/data/profile";
+import { useProfile } from "@/lib/hooks/use-profile";
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -15,12 +15,8 @@ function getInitials(name: string): string {
 }
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<ReturnType<typeof getProfile> | null>(null);
+  const { profile, isLoading, updateProfile } = useProfile();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setProfile(getProfile());
-  }, []);
 
   function handlePhotoClick() {
     fileInputRef.current?.click();
@@ -47,7 +43,6 @@ export default function ProfilePage() {
       const base64 = event.target?.result as string;
       if (base64) {
         updateProfile({ photoUrl: base64 });
-        setProfile((prev) => prev ? { ...prev, photoUrl: base64 } : null);
       }
     };
     reader.readAsDataURL(file);
@@ -66,7 +61,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (!profile) {
+  if (isLoading || !profile) {
     return (
       <div className="container-app py-12 text-center text-foreground-secondary">
         로딩 중…

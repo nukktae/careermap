@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "Gemini API key not configured" },
+      { error: "Gemini API key not configured. Set GEMINI_API_KEY to a Gemini Developer API key (Google AI Studio)." },
       { status: 503 }
     );
   }
@@ -80,9 +80,13 @@ ${text.slice(0, 28000)}
 
   if (!res.ok) {
     const errText = await res.text();
+    const isAuthError = res.status === 401 || /UNAUTHENTICATED|API keys are not supported|OAuth2/i.test(errText);
+    const message = isAuthError
+      ? "Gemini API key invalid or not set. Use a Gemini Developer API key from Google AI Studio (https://aistudio.google.com/apikey), not a Vertex key."
+      : "Gemini API error";
     return NextResponse.json(
-      { error: "Gemini API error", details: errText },
-      { status: 502 }
+      { error: message, details: isAuthError ? errText : undefined },
+      { status: isAuthError ? 503 : 502 }
     );
   }
 

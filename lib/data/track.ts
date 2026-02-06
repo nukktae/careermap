@@ -287,7 +287,10 @@ export function getInsightsData(applicationCount: number): InsightsData {
 }
 
 export function exportApplicationsToCSV(): string {
-  const apps = getApplicationsInternal();
+  return exportApplicationsToCSVFromList(getApplicationsInternal());
+}
+
+export function exportApplicationsToCSVFromList(apps: Application[]): string {
   const headers = ["id", "회사", "직무", "상태", "추가일", "지원일"];
   const rows = apps.map((a) => {
     const job = getJobById(a.jobId);

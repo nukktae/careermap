@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -12,20 +12,13 @@ import {
 import { Plus, Download, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  getApplications,
-  getStatusLabel,
-  moveApplication,
-  reorderApplicationsInStatus,
-  exportApplicationsToCSV,
-  APPLICATION_STATUSES,
-  type Application,
-  type ApplicationStatus,
-} from "@/lib/data/track";
+import { getStatusLabel, exportApplicationsToCSVFromList, APPLICATION_STATUSES } from "@/lib/data/track";
 import { getJobById } from "@/lib/data/jobs";
+import { useApplications } from "@/lib/hooks/use-applications";
 import { KanbanColumn } from "@/components/track/kanban-column";
 import { DraggableApplicationCard } from "@/components/track/draggable-application-card";
 import { AddApplicationModal } from "@/components/track/add-application-modal";
+import type { Application, ApplicationStatus } from "@/lib/data/track";
 
 function downloadCSV(csv: string, filename: string) {
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
@@ -38,18 +31,16 @@ function downloadCSV(csv: string, filename: string) {
 }
 
 export default function TrackPage() {
-  const [applications, setApplications] = useState<Application[]>([]);
+  const {
+    applications,
+    isLoading,
+    updateApplication,
+    refresh,
+    addApplication,
+  } = useApplications();
   const [searchQuery, setSearchQuery] = useState("");
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [dragJustEnded, setDragJustEnded] = useState(false);
-
-  const refreshApplications = useCallback(() => {
-    setApplications(getApplications());
-  }, []);
-
-  useEffect(() => {
-    refreshApplications();
-  }, [refreshApplications]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -58,7 +49,7 @@ export default function TrackPage() {
     useSensor(KeyboardSensor)
   );
 
-  function handleDragEnd(event: DragEndEvent) {
+  async function handleDragEnd(event: DragEndEvent) {
     setDragJustEnded(true);
     setTimeout(() => setDragJustEnded(false), 200);
     const { active, over } = event;
@@ -69,31 +60,14 @@ export default function TrackPage() {
     const overId = String(over.id);
     const isOverColumn = APPLICATION_STATUSES.includes(overId as ApplicationStatus);
     const overApp = applications.find((a) => a.id === overId);
+    const newStatus: ApplicationStatus = isOverColumn
+      ? (overId as ApplicationStatus)
+      : overApp?.status ?? app.status;
 
-    if (overApp && !isOverColumn) {
-      // 다른 카드 위에 드롭: 같은 컬럼이면 순서 변경, 다르면 상태 변경
-      if (overApp.status === app.status) {
-        const ids = byStatus[app.status].map((a) => a.id);
-        const oldIndex = ids.indexOf(active.id);
-        const newIndex = ids.indexOf(overId);
-        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-          const [removed] = ids.splice(oldIndex, 1);
-          ids.splice(newIndex, 0, removed);
-          reorderApplicationsInStatus(app.status, ids);
-          refreshApplications();
-        }
-      } else {
-        moveApplication(active.id, overApp.status);
-        refreshApplications();
-      }
-    } else if (isOverColumn) {
-      // 컬럼(빈 영역)에 드롭: 상태 변경
-      const newStatus = overId as ApplicationStatus;
-      if (app.status !== newStatus) {
-        moveApplication(active.id, newStatus);
-        refreshApplications();
-      }
-    }
+    if (app.status === newStatus) return;
+    const patch: Partial<Application> = { status: newStatus };
+    if (newStatus === "applied" && !app.appliedAt) patch.appliedAt = Date.now();
+    await updateApplication(active.id, patch);
   }
 
   const filteredBySearch = applications.filter((app) => {
@@ -119,7 +93,7 @@ export default function TrackPage() {
   );
 
   function handleExport() {
-    const csv = exportApplicationsToCSV();
+    const csv = exportApplicationsToCSVFromList(applications);
     downloadCSV(
       csv,
       `careermap-지원현황-${new Date().toISOString().slice(0, 10)}.csv`
@@ -132,7 +106,7 @@ export default function TrackPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">지원 현황</h1>
           <p className="text-foreground-secondary mt-1">
-            {applications.length}건의 지원
+            {isLoading ? "불러오는 중..." : `${applications.length}건의 지원`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -164,7 +138,11 @@ export default function TrackPage() {
         </div>
       </div>
 
-      {applications.length === 0 ? (
+      {isLoading ? (
+        <div className="rounded-xl border border-border bg-background-secondary p-12 text-center">
+          <p className="text-foreground-secondary">불러오는 중...</p>
+        </div>
+      ) : applications.length === 0 ? (
         <div className="rounded-xl border border-border bg-background-secondary p-12 text-center">
           <p className="text-foreground-secondary mb-4">아직 지원이 없어요</p>
           <Button onClick={() => setAddModalOpen(true)}>채용 찾기</Button>
@@ -209,7 +187,8 @@ export default function TrackPage() {
       <AddApplicationModal
         open={addModalOpen}
         onOpenChange={setAddModalOpen}
-        onAdded={refreshApplications}
+        onAdded={refresh}
+        onAddApplication={async (jobId) => addApplication(jobId, "interested")}
       />
     </div>
   );

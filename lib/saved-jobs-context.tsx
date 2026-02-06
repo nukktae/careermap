@@ -1,6 +1,11 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
+import {
+  getSavedJobs,
+  toggleSavedJob as toggleSavedJobSupabase,
+} from "@/lib/data/saved-jobs-supabase";
 
 const STORAGE_KEY = "careermap-saved-jobs";
 
@@ -40,30 +45,45 @@ function saveToStorage(entries: SavedJobEntry[]) {
 }
 
 export function SavedJobsProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [entries, setEntries] = useState<SavedJobEntry[]>([]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setEntries(loadFromStorage());
-    setMounted(true);
-  }, []);
+    if (user) {
+      getSavedJobs(user.id).then(setEntries);
+      setMounted(true);
+    } else {
+      setEntries(loadFromStorage());
+      setMounted(true);
+    }
+  }, [user?.id]);
 
-  const toggleSaved = useCallback((jobId: number) => {
-    setEntries((prev) => {
-      const existing = prev.find((e) => e.jobId === jobId);
-      const next = existing
-        ? prev.filter((e) => e.jobId !== jobId)
-        : [...prev, { jobId, savedAt: Date.now() }];
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          // ignore
-        }
+  const toggleSaved = useCallback(
+    async (jobId: number) => {
+      if (user) {
+        await toggleSavedJobSupabase(user.id, jobId);
+        const next = await getSavedJobs(user.id);
+        setEntries(next);
+      } else {
+        setEntries((prev) => {
+          const existing = prev.find((e) => e.jobId === jobId);
+          const next = existing
+            ? prev.filter((e) => e.jobId !== jobId)
+            : [...prev, { jobId, savedAt: Date.now() }];
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+            } catch {
+              // ignore
+            }
+          }
+          return next;
+        });
       }
-      return next;
-    });
-  }, []);
+    },
+    [user?.id]
+  );
 
   const isSaved = useCallback(
     (jobId: number) => entries.some((e) => e.jobId === jobId),

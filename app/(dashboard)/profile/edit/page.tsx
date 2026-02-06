@@ -8,14 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  getProfile,
-  updateProfile,
-  type UserProfile,
-  type Education,
-  type Experience,
-  type Project,
-} from "@/lib/data/profile";
+import { useProfile } from "@/lib/hooks/use-profile";
+import type { UserProfile, Education, Experience, Project } from "@/lib/data/profile";
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -27,7 +21,7 @@ function getInitials(name: string): string {
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const { profile: initialProfile, isLoading, updateProfile } = useProfile();
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<string[]>(["personal", "education", "skills", "experience", "projects"]);
   const [form, setForm] = useState<UserProfile | null>(null);
@@ -35,12 +29,8 @@ export default function EditProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted) setForm(getProfile());
-  }, [mounted]);
+    if (!isLoading && initialProfile) setForm(initialProfile);
+  }, [isLoading, initialProfile]);
 
   const toggleSection = (id: string) => {
     setExpanded((prev) =>
@@ -163,13 +153,12 @@ export default function EditProfilePage() {
   const handleSave = async () => {
     if (!form) return;
     setSaving(true);
-    updateProfile(form);
-    await new Promise((r) => setTimeout(r, 400));
+    await updateProfile(form);
     setSaving(false);
     router.push("/profile");
   };
 
-  if (!mounted || !form) {
+  if (isLoading || !form) {
     return (
       <div className="container-app py-12 text-center text-foreground-secondary">
         로딩 중…

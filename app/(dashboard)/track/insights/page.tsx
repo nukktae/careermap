@@ -1,29 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { TrendingUp, AlertCircle, Zap, BookOpen, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getApplications, getInsightsData } from "@/lib/data/track";
+import { useApplications } from "@/lib/hooks/use-applications";
+import { getInsightsData } from "@/lib/data/track";
 
 export default function TrackInsightsPage() {
-  const [applicationCount, setApplicationCount] = useState(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted) {
-      setApplicationCount(getApplications().length);
-    }
-  }, [mounted]);
-
-  const insights = mounted ? getInsightsData(applicationCount) : null;
+  const { applications, isLoading } = useApplications();
+  const applicationCount = applications.length;
+  const insights = getInsightsData(applicationCount);
   const showGate = applicationCount < 10;
 
-  if (!mounted) {
+  if (isLoading) {
     return (
       <div className="container-app py-12 text-center text-foreground-secondary">
         로딩 중…

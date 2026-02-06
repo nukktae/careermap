@@ -71,6 +71,8 @@
   --primary-badge-text: #1e40af;
   --success-badge-bg: #d1fae5;
   --warning-badge-bg: #fef3c7;
+  --neutral-badge-bg: #f3f4f6;
+  --neutral-badge-text: #4b5563;
   /* Card hover tint - no opacity modifier */
   --primary-surface-hover: #eff6ff;
 }
@@ -93,6 +95,8 @@
   --primary-badge-text: #93c5fd;
   --success-badge-bg: rgba(4, 120, 87, 0.35);
   --warning-badge-bg: rgba(180, 83, 9, 0.35);
+  --neutral-badge-bg: #374151;
+  --neutral-badge-text: #9ca3af;
   --primary-surface-hover: rgba(23, 37, 84, 0.18);
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -135,6 +139,8 @@
   --color-primary-surface-hover: var(--primary-surface-hover);
   --color-success-badge: var(--success-badge-bg);
   --color-warning-badge: var(--warning-badge-bg);
+  --color-neutral-badge: var(--neutral-badge-bg);
+  --color-neutral-badge-text: var(--neutral-badge-text);
 
   /* Success */
   --color-success-50: var(--success-50);
@@ -156,6 +162,10 @@
   --color-error-500: var(--error-500);
   --color-error-600: var(--error-600);
   --color-error-700: var(--error-700);
+
+  /* Focus ring (Switch, Slider, inputs) */
+  --color-ring: var(--primary-500);
+  --color-input: var(--border);
 
   /* Typography - Pretendard for Korean, Inter for English */
   --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;

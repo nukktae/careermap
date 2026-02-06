@@ -71,39 +71,40 @@ export default function JobsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground mb-1">채용 찾기</h1>
-        <p className="text-foreground-secondary">
-          {jobs.length}개의 매칭 채용
-          {linkareerJobs.length > 0 && ` + ${linkareerJobs.length}건 인턴 (Linkareer)`}
-        </p>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
-          <Input
-            type="text"
-            placeholder="직무, 회사 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-11"
-          />
+      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">채용 찾기</h1>
+          <p className="text-gray-500 dark:text-foreground-secondary font-medium">
+            {jobs.length}개의 매칭 채용
+            {linkareerJobs.length > 0 && ` + ${linkareerJobs.length}건 인턴 (Linkareer)`}
+          </p>
         </div>
-        <Button
-          variant="outline"
-          className="h-11"
-          onClick={() => setFiltersModalOpen(true)}
-        >
-          <SlidersHorizontal className="w-5 h-5 mr-2" />
-          필터
-          {activeFilterCount > 0 && (
-            <span className="ml-2 w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center">
-              {activeFilterCount}
-            </span>
-          )}
-        </Button>
-      </div>
+        <div className="flex gap-3">
+          <div className="relative flex-1 sm:flex-initial sm:w-[320px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-foreground-muted" />
+            <Input
+              type="text"
+              placeholder="직무, 회사 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-11 pr-4 py-3 h-auto bg-white dark:bg-card border-gray-200 dark:border-border rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+            />
+          </div>
+          <Button
+            variant="outline"
+            className="px-5 py-3 h-auto font-semibold rounded-xl border-gray-200 dark:border-border flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-background-secondary"
+            onClick={() => setFiltersModalOpen(true)}
+          >
+            <SlidersHorizontal className="w-5 h-5 text-gray-400 dark:text-foreground-muted" />
+            필터
+            {activeFilterCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+        </div>
+      </header>
 
       <JobFiltersModal
         open={filtersModalOpen}
@@ -114,18 +115,22 @@ export default function JobsPage() {
         onApply={() => {}}
       />
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-foreground-secondary">
+      <div className="flex justify-between items-center mb-6">
+        <p className="text-gray-600 dark:text-foreground-secondary font-medium">
           {displayJobs.length}개의 채용
         </p>
-        <select className="text-sm bg-transparent border border-border rounded-lg px-3 py-1.5 text-foreground">
-          <option>매칭 점수순</option>
-          <option>최신순</option>
-          <option>연봉순</option>
-        </select>
+        <button
+          type="button"
+          className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-foreground"
+        >
+          매칭 점수순
+          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {displayJobs.map((job) => (
           <JobCard
             key={job.id}

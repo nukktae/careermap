@@ -11,6 +11,64 @@ import {
   Lightbulb,
   FileEdit,
 } from "lucide-react";
+import { useProfile } from "@/lib/hooks/use-profile";
+import type { UserProfile } from "@/lib/data/profile";
+
+/** Onewave /api/resume/analyze response shape (from onewave-hackathon models.py) */
+interface OnewaveEducation {
+  university: string;
+  major: string;
+  graduation_year: string;
+  gpa?: string | null;
+}
+interface OnewaveProject {
+  name: string;
+  description: string;
+  tech_stack: string[];
+}
+interface OnewaveResumeAnalysis {
+  name: string;
+  email: string;
+  phone: string;
+  desired_job?: string;
+  educations: OnewaveEducation[];
+  skills: string[];
+  experiences: string[];
+  certificates: string[];
+  projects: OnewaveProject[];
+  awards: string[];
+}
+
+function mapOnewaveToProfile(data: OnewaveResumeAnalysis): Partial<UserProfile> {
+  const education = data.educations?.[0];
+  return {
+    name: data.name ?? "",
+    email: data.email ?? "",
+    phone: data.phone ?? "",
+    education: education
+      ? {
+          university: education.university ?? "",
+          major: education.major ?? "",
+          graduationYear: education.graduation_year ?? "",
+          gpa: education.gpa ?? "",
+        }
+      : undefined,
+    skills: Array.isArray(data.skills) ? data.skills : [],
+    experience: (data.experiences ?? []).map((desc, i) => ({
+      id: `exp-${i + 1}`,
+      company: "",
+      role: "",
+      duration: "",
+      description: desc,
+    })),
+    projects: (data.projects ?? []).map((p, i) => ({
+      id: `proj-${i + 1}`,
+      title: p.name ?? "",
+      description: p.description ?? "",
+      techStack: Array.isArray(p.tech_stack) ? p.tech_stack : [],
+    })),
+  };
+}
 
 const ACCEPT =
   ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -141,6 +199,7 @@ function UploadZone({
 
 export default function ResumeUploadPage() {
   const router = useRouter();
+  const { updateProfile } = useProfile();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
   const [draggingOver, setDraggingOver] = useState<UploadType | null>(null);
@@ -196,29 +255,62 @@ export default function ResumeUploadPage() {
   const handleUpload = async () => {
     if (!resumeFile) return;
 
+    setError(null);
     setIsUploading(true);
     setUploadProgress(0);
 
-    const uploadInterval = setInterval(() => {
+    const progressInterval = setInterval(() => {
       setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(uploadInterval);
-          return 100;
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return prev;
         }
         return prev + 10;
       });
     }, 200);
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    clearInterval(uploadInterval);
-    setUploadProgress(100);
+    try {
+      const formData = new FormData();
+      formData.set("file", resumeFile, resumeFile.name);
+
+      const res = await fetch("/api/resume/analyze", {
+        method: "POST",
+        body: formData,
+      });
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const message =
+          (errBody as { details?: string; error?: string })?.details ??
+          (errBody as { error?: string })?.error ??
+          "이력서 분석에 실패했어요. 다시 시도해 주세요.";
+        setError(typeof message === "string" ? message : "이력서 분석에 실패했어요.");
+        setIsUploading(false);
+        return;
+      }
+
+      const analysis = (await res.json()) as OnewaveResumeAnalysis;
+      const patch = mapOnewaveToProfile(analysis);
+      await updateProfile(patch);
+    } catch (e) {
+      clearInterval(progressInterval);
+      setError(
+        e instanceof Error ? e.message : "이력서 분석 중 오류가 발생했어요. 다시 시도해 주세요."
+      );
+      setIsUploading(false);
+      return;
+    }
+
     setIsUploading(false);
     setIsAnalyzing(true);
 
     const tipInterval = setInterval(() => {
       setCurrentTip((prev) => (prev + 1) % tips.length);
     }, 3000);
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     clearInterval(tipInterval);
     router.push("/onboarding/profile");
   };

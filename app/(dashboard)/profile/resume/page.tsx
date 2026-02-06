@@ -6,7 +6,8 @@ import { FileText, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getProfile, updateProfile, getResumeSectionsForDisplay } from "@/lib/data/profile";
+import { useProfile } from "@/lib/hooks/use-profile";
+import { getResumeSectionsForDisplay } from "@/lib/data/profile";
 import { RESUME_TEMPLATE_ABOUT_ME } from "@/lib/data/prepare";
 
 const SECTION_KEYS = ["summary", "education", "experience", "projects", "skills"] as const;
@@ -19,28 +20,23 @@ const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
 };
 
 export default function EditResumePage() {
-  const [mounted, setMounted] = useState(false);
+  const { profile, isLoading, updateProfile } = useProfile();
   const [sections, setSections] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted) {
-      const profile = getProfile();
+    if (!isLoading && profile) {
       const next = getResumeSectionsForDisplay(profile);
       setSections(next);
     }
-  }, [mounted]);
+  }, [isLoading, profile]);
 
   const updateSection = (key: string, value: string) => {
     setSections((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = () => {
-    updateProfile({ resumeSections: sections });
+  const handleSave = async () => {
+    await updateProfile({ resumeSections: sections });
     if (typeof window !== "undefined") window.alert("저장되었어요.");
   };
 
@@ -54,12 +50,11 @@ export default function EditResumePage() {
   };
 
   const handlePdfDownload = () => {
-    const profile = getProfile();
-    const rs = profile.resumeSections ?? {};
+    const rs = profile?.resumeSections ?? {};
     const lines: string[] = [
-      profile.name,
-      profile.email,
-      profile.phone,
+      profile?.name ?? "",
+      profile?.email ?? "",
+      profile?.phone ?? "",
       "",
       "--- 자기소개 ---",
       rs.summary ?? "",
@@ -80,12 +75,12 @@ export default function EditResumePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `이력서_${profile.name}_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `이력서_${profile?.name ?? "resume"}_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  if (!mounted) {
+  if (isLoading) {
     return (
       <div className="container-app py-12 text-center text-foreground-secondary">
         로딩 중…

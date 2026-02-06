@@ -1,33 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { Bookmark, Building2, ChevronRight, MapPin } from "lucide-react";
+import { Bookmark, Building2, MapPin } from "lucide-react";
 import { Check } from "lucide-react";
 import type { Job, MatchBadge } from "@/lib/data/jobs";
 
-function getBadgeStyle(badge: MatchBadge): string {
-  switch (badge) {
-    case "apply":
-      return "match-high";
-    case "prep":
-      return "match-medium";
-    case "stretch":
-      return "match-low";
-    default:
-      return "";
-  }
+const COMPANY_LOGO_COLORS = [
+  { bg: "bg-[#03C75A]", text: "text-white" },
+  { bg: "bg-[#1062FE]", text: "text-white" },
+  { bg: "bg-[#2AC1BC]", text: "text-white" },
+  { bg: "bg-[#A31411]", text: "text-white" },
+  { bg: "bg-[#FEE500]", text: "text-[#3C1E1E]" },
+  { bg: "bg-[#FF7E36]", text: "text-white" },
+  { bg: "bg-[#00C300]", text: "text-white" },
+  { bg: "bg-[#FFBB00]", text: "text-black" },
+  { bg: "bg-primary-500", text: "text-white" },
+] as const;
+
+function getCompanyLogoColor(company: string): (typeof COMPANY_LOGO_COLORS)[number] {
+  let hash = 0;
+  for (let i = 0; i < company.length; i++) hash = (hash << 5) - hash + company.charCodeAt(i);
+  const index = Math.abs(hash) % COMPANY_LOGO_COLORS.length;
+  return COMPANY_LOGO_COLORS[index];
 }
 
-function getBadgeLabel(badge: MatchBadge): string {
+function getBadgeStyles(badge: MatchBadge): { wrapper: string; label: string } {
   switch (badge) {
     case "apply":
-      return "지원 가능";
+      return {
+        wrapper: "bg-primary-badge text-primary-badge-text",
+        label: "지원 가능",
+      };
     case "prep":
-      return "준비 필요";
+      return {
+        wrapper: "bg-warning-badge text-warning-600 dark:text-warning-400",
+        label: "준비 필요",
+      };
     case "stretch":
-      return "도전 목표";
+      return {
+        wrapper: "bg-neutral-badge text-neutral-badge-text",
+        label: "도전 목표",
+      };
     default:
-      return "";
+      return { wrapper: "", label: "" };
   }
 }
 
@@ -39,120 +54,82 @@ export interface JobCardProps {
 }
 
 export function JobCard({ job, isSaved, onToggleSave, href }: JobCardProps) {
+  const logoColor = getCompanyLogoColor(job.company);
+  const badgeStyles = getBadgeStyles(job.badge);
+
   return (
     <Link
       href={href}
-      className="bg-card rounded-xl border border-border p-5 hover:border-primary-200 dark:hover:border-primary-800 hover:shadow-md transition-all group"
+      className="group flex flex-col bg-white dark:bg-card rounded-2xl border border-gray-100 dark:border-border shadow-sm hover:shadow-md transition-all p-6"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-background-secondary flex items-center justify-center text-foreground font-bold text-lg overflow-hidden group-hover:bg-primary-50 dark:group-hover:bg-primary-950/30 transition-colors">
+      <div className="flex justify-between items-start mb-5">
+        <div className="flex gap-4 min-w-0">
+          <div
+            className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden ${logoColor.bg} ${logoColor.text}`}
+          >
             {job.logoUrl ? (
-              <img
-                src={job.logoUrl}
-                alt=""
-                className="object-contain w-full h-full"
-              />
+              <img src={job.logoUrl} alt="" className="object-contain w-full h-full" />
             ) : (
               job.logo
             )}
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
               {job.title}
             </h3>
-            <p className="text-sm text-foreground-secondary">{job.company}</p>
+            <p className="text-gray-500 dark:text-foreground-secondary font-medium truncate">
+              {job.company}
+            </p>
           </div>
         </div>
-        <button
-          onClick={(e) => onToggleSave(job.id, e)}
-          className={`p-2 rounded-lg transition-colors ${
-            isSaved
-              ? "text-primary-500 bg-primary-50 dark:bg-primary-950/30"
-              : "text-foreground-muted hover:text-foreground hover:bg-background-secondary"
-          }`}
-        >
-          <Bookmark
-            className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`}
-          />
-        </button>
+        <div className="flex items-start gap-2 shrink-0">
+          <div className="text-right">
+            <div className="text-primary-500 font-bold text-xl">{job.match}%</div>
+            <span
+              className={`inline-block text-[11px] px-2 py-1 rounded-md font-bold ${badgeStyles.wrapper}`}
+            >
+              {badgeStyles.label}
+            </span>
+          </div>
+          <button
+            onClick={(e) => onToggleSave(job.id, e)}
+            className={`p-2 rounded-lg transition-colors ${
+              isSaved
+                ? "text-primary-500 bg-primary-50 dark:bg-primary-950/30"
+                : "text-gray-400 hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+            }`}
+            aria-label={isSaved ? "저장 취소" : "저장"}
+          >
+            <Bookmark className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} />
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4 text-sm text-foreground-secondary">
-        <span className="flex items-center gap-1">
-          <MapPin className="w-4 h-4" />
+      <div className="flex flex-wrap gap-4 mb-6 text-sm text-gray-500 dark:text-foreground-secondary">
+        <span className="flex items-center gap-1.5">
+          <MapPin className="w-4 h-4 shrink-0" />
           {job.location}
         </span>
-        <span className="flex items-center gap-1">
-          <Building2 className="w-4 h-4" />
+        <span className="flex items-center gap-1.5">
+          <Building2 className="w-4 h-4 shrink-0" />
           {job.type}
         </span>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="relative w-14 h-14">
-            <svg className="w-14 h-14 -rotate-90">
-              <circle
-                cx="28"
-                cy="28"
-                r="24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="4"
-                className="text-background-secondary"
-              />
-              <circle
-                cx="28"
-                cy="28"
-                r="24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="4"
-                strokeDasharray={`${job.match * 1.51} 151`}
-                strokeLinecap="round"
-                className={
-                  job.badge === "apply"
-                    ? "text-success-500"
-                    : job.badge === "prep"
-                      ? "text-warning-500"
-                      : "text-error-500"
-                }
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm font-bold text-foreground">
-                {job.match}%
-              </span>
-            </div>
-          </div>
-          <div>
-            <span
-              className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${getBadgeStyle(
-                job.badge
-              )}`}
-            >
-              {getBadgeLabel(job.badge)}
-            </span>
-          </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-foreground-muted group-hover:text-primary-500 transition-colors" />
-      </div>
-
-      <div className="flex flex-wrap gap-1.5">
-        {job.matchedSkills.slice(0, 3).map((skill) => (
+      <div className="flex flex-wrap gap-2 mt-auto">
+        {job.matchedSkills.slice(0, 5).map((skill) => (
           <span
             key={skill}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-400 text-xs"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-400"
           >
-            <Check className="w-3 h-3" />
+            <Check className="w-3 h-3 shrink-0" />
             {skill}
           </span>
         ))}
-        {job.missingSkills.slice(0, 2).map((skill) => (
+        {job.missingSkills.slice(0, 5).map((skill) => (
           <span
             key={skill}
-            className="px-2 py-0.5 rounded-full bg-error-100 dark:bg-error-900/30 text-error-700 dark:text-error-400 text-xs"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-error-100 dark:bg-error-900/30 text-error-700 dark:text-error-400"
           >
             {skill}
           </span>

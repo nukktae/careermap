@@ -25,21 +25,28 @@ export interface AddApplicationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdded?: () => void;
+  /** When provided (e.g. from useApplications), used instead of local addApplication */
+  onAddApplication?: (jobId: number) => void | Promise<void>;
 }
 
 export function AddApplicationModal({
   open,
   onOpenChange,
   onAdded,
+  onAddApplication,
 }: AddApplicationModalProps) {
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const jobs = getJobs();
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const jobId = selectedJobId ? Number(selectedJobId) : null;
     if (jobId == null || Number.isNaN(jobId)) return;
-    addApplication(jobId, "interested");
-    invalidateApplicationsCache();
+    if (onAddApplication) {
+      await onAddApplication(jobId);
+    } else {
+      addApplication(jobId, "interested");
+      invalidateApplicationsCache();
+    }
     setSelectedJobId("");
     onOpenChange(false);
     onAdded?.();

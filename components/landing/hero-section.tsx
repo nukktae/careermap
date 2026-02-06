@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Target, TrendingUp } from "lucide-react";
+import { ArrowRight, Play, Target } from "lucide-react";
 
 export function HeroSection() {
   return (
@@ -60,7 +60,7 @@ export function HeroSection() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="bg-background rounded-md px-4 py-1.5 text-sm text-foreground-muted text-center">
-                    careermap.kr/dashboard
+                    careermap.kr/prepare/resume
                   </div>
                 </div>
               </div>
@@ -94,32 +94,33 @@ export function HeroSection() {
                     </div>
                   </div>
 
-                  {/* Progress Card */}
-                  <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-foreground">학습 진행률</h3>
-                      <TrendingUp className="w-5 h-5 text-success-500" />
-                    </div>
+                  {/* CV Optimizer Card */}
+                  <div className="bg-card rounded-xl p-6 border border-border shadow-sm" data-hero-card="cv-optimizer">
                     <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-foreground-secondary">Docker 기초</span>
-                        <span className="text-sm font-medium text-foreground">75%</span>
+                      <h3 className="font-semibold text-foreground">이력서 최적화</h3>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-foreground-secondary">문장 강화</span>
+                        <span className="text-sm font-semibold text-success-600">적용됨</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-foreground-secondary">JD 키워드 반영</span>
+                        <span className="text-sm font-medium text-foreground">92%</span>
                       </div>
                       <div className="h-2 bg-background-secondary rounded-full overflow-hidden">
-                        <div className="h-full w-3/4 bg-primary-500 rounded-full" />
+                        <div className="h-full w-[92%] bg-primary-500 rounded-full" />
                       </div>
-                    </div>
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-foreground-secondary">AWS EC2</span>
-                        <span className="text-sm font-medium text-foreground">40%</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-foreground-secondary">최적화 섹션</span>
+                        <span className="text-sm font-medium text-foreground">5개</span>
                       </div>
                       <div className="h-2 bg-background-secondary rounded-full overflow-hidden">
-                        <div className="h-full w-2/5 bg-primary-500 rounded-full" />
+                        <div className="h-full w-full bg-primary-500 rounded-full" />
                       </div>
                     </div>
-                    <div className="text-sm text-foreground-secondary">
-                      2주차 진행 중
+                    <div className="mt-4 pt-4 border-t border-border text-sm text-foreground-secondary">
+                      채용공고에 맞춰 문구 자동 개선
                     </div>
                   </div>
 

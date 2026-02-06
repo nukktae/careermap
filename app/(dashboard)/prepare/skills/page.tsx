@@ -6,16 +6,14 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
 import { getJobById } from "@/lib/data/jobs";
-import { getProfile } from "@/lib/data/profile";
+import { useProfile } from "@/lib/hooks/use-profile";
 import {
-  getSkillGapSkills,
   getSkillGapFromJobDetail,
   computeMatchedMissingLines,
   type SkillGapContext,
   type SkillGapSectionScore,
 } from "@/lib/data/prepare";
 import { LINKAREER_ID_OFFSET } from "@/lib/data/linkareer";
-import { ImpactEffortMatrix } from "@/components/prepare/impact-effort-matrix";
 import { User, Check, Target, ChevronRight } from "lucide-react";
 
 /** Linkareer activity API response (subset we need). */
@@ -33,7 +31,10 @@ interface AnalyzedSection {
   content: string;
 }
 
-function useSkillGapContext(jobId: number | null): {
+function useSkillGapContext(
+  jobId: number | null,
+  profileSkills: string[]
+): {
   context: SkillGapContext | null;
   loading: boolean;
   error: string | null;
@@ -72,9 +73,6 @@ function useSkillGapContext(jobId: number | null): {
       setLoading(false);
       return;
     }
-
-    const profile = getProfile();
-    const profileSkills = profile.skills ?? [];
 
     Promise.all([
       fetch(`/api/linkareer/activity/${activityId}`).then((r) =>
@@ -180,44 +178,30 @@ function useSkillGapContext(jobId: number | null): {
         setContext(null);
       })
       .finally(() => setLoading(false));
-  }, [jobId]);
+  }, [jobId, profileSkills]);
 
   return { context, loading, error };
 }
 
 function PrepareSkillsContent() {
   const searchParams = useSearchParams();
+  const { profile } = useProfile();
   const jobParam = searchParams.get("job");
   const jobId =
     jobParam != null ? parseInt(jobParam, 10) : null;
   const validJobId =
     jobId != null && !Number.isNaN(jobId) ? jobId : null;
 
-  const { context, loading, error } = useSkillGapContext(validJobId);
-  const profile = getProfile();
-  const fallbackSkills = getSkillGapSkills();
-  const matrixPoints = fallbackSkills.map((s) => ({
-    id: s.id,
-    name: s.name,
-    impactPercent: s.impactPercent,
-    learningDays: (s.learningDaysMin + s.learningDaysMax) / 2,
-  }));
+  const { context, loading, error } = useSkillGapContext(
+    validJobId,
+    profile?.skills ?? []
+  );
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="h-8 w-48 animate-pulse rounded-lg bg-background-secondary" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-24 animate-pulse rounded-xl bg-background-secondary"
-              />
-            ))}
-          </div>
-          <div className="h-64 animate-pulse rounded-xl bg-background-secondary" />
-        </div>
+        <div className="h-48 animate-pulse rounded-xl bg-background-secondary" />
       </div>
     );
   }
@@ -252,28 +236,6 @@ function PrepareSkillsContent() {
           <Button asChild>
             <Link href="/jobs">채용 찾기</Link>
           </Button>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <h3 className="text-sm font-medium text-foreground-muted">
-              자주 요구되는 스킬 (참고)
-            </h3>
-            {fallbackSkills.slice(0, 5).map((skill) => (
-              <div
-                key={skill.id}
-                className="rounded-xl border border-border bg-card p-4 flex items-center justify-between"
-              >
-                <span className="font-medium text-foreground">{skill.name}</span>
-                <span className="text-sm text-foreground-muted">
-                  +{skill.impactPercent}% · {skill.learningDaysMin}~{skill.learningDaysMax}일
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="font-semibold text-foreground mb-3">영향 vs 학습 시간</h3>
-            <ImpactEffortMatrix points={matrixPoints} />
-          </div>
         </div>
       </div>
     );

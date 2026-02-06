@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,17 +12,49 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
+    const form = e.currentTarget;
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
+    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+    if (!email || !password) return;
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    // Redirect to dashboard
-    window.location.href = "/dashboard";
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const raw = data?.details ?? data?.error ?? "로그인에 실패했습니다.";
+        const msg = typeof raw === "string" ? raw : "이메일 또는 비밀번호가 올바르지 않습니다.";
+        const friendly =
+          /rate limit|too many requests/i.test(msg)
+            ? "요청이 너무 많습니다. 몇 분 후에 다시 시도해 주세요."
+            : msg;
+        setError(friendly);
+        setIsLoading(false);
+        return;
+      }
+      const access_token = data?.access_token;
+      const refresh_token = data?.refresh_token;
+      if (access_token && refresh_token) {
+        const supabase = createClient();
+        await supabase.auth.setSession({ access_token, refresh_token });
+      }
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("로그인 중 오류가 발생했습니다.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -50,6 +84,11 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-error-100 text-error-700 dark:bg-error-900/30 dark:text-error-400 text-sm">
+              {error}
+            </div>
+          )}
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
@@ -59,6 +98,7 @@ export default function LoginPage() {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="name@example.com"
                   className="pl-10 h-12"
@@ -82,6 +122,7 @@ export default function LoginPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
                 <Input
                   id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="비밀번호 입력"
                   className="pl-10 pr-10 h-12"
@@ -180,13 +221,6 @@ export default function LoginPage() {
               </svg>
               Google로 계속하기
             </Button>
-
-            <Button variant="outline" className="w-full h-12" type="button">
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" />
-              </svg>
-              카카오로 계속하기
-            </Button>
           </div>
 
           {/* Sign up link */}
@@ -222,20 +256,6 @@ export default function LoginPage() {
             <br />
             취업 준비의 불확실성을 해소하세요.
           </p>
-          <div className="flex items-center justify-center gap-8 text-sm">
-            <div>
-              <div className="text-2xl font-bold">1,000+</div>
-              <div className="text-white/70">취업 성공</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold">92%</div>
-              <div className="text-white/70">매칭 정확도</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold">4.9</div>
-              <div className="text-white/70">사용자 평점</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
