@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,14 @@ import {
   type Project,
 } from "@/lib/data/profile";
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase() || "?";
+}
+
 export default function EditProfilePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -24,6 +32,7 @@ export default function EditProfilePage() {
   const [expanded, setExpanded] = useState<string[]>(["personal", "education", "skills", "experience", "projects"]);
   const [form, setForm] = useState<UserProfile | null>(null);
   const [newSkill, setNewSkill] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -37,6 +46,34 @@ export default function EditProfilePage() {
     setExpanded((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
+  };
+
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !form) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 업로드할 수 있어요.");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("파일 크기가 너무 커요. 2MB 이하의 이미지를 사용해주세요.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setForm({ ...form, photoUrl: base64 });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const updatePersonal = (key: keyof UserProfile, value: string) => {
