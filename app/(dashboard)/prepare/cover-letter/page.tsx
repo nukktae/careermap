@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppIcon } from "@/components/ui/app-icon";
@@ -18,9 +19,18 @@ import {
 } from "@/components/ui/select";
 
 export default function PrepareCoverLetterPage() {
+  const searchParams = useSearchParams();
   const jobs = getJobs();
+  const jobParam = searchParams.get("job");
+  const urlJobId = jobParam ? parseInt(jobParam, 10) : null;
+  const initialCompanyId =
+    urlJobId != null &&
+    !Number.isNaN(urlJobId) &&
+    jobs.some((j) => j.id === urlJobId)
+      ? String(urlJobId)
+      : String(jobs[0]?.id ?? "1");
   const prompts = getCoverLetterPrompts();
-  const [companyId, setCompanyId] = useState<string>(String(jobs[0]?.id ?? "1"));
+  const [companyId, setCompanyId] = useState<string>(initialCompanyId);
   const [promptId, setPromptId] = useState<string>(prompts[0]?.id ?? "motivation");
   const [customPrompt, setCustomPrompt] = useState("");
   const numId = companyId ? parseInt(companyId, 10) : 1;

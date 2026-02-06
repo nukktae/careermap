@@ -214,7 +214,7 @@ export function MatchExplanationModal({
         {/* Footer CTAs */}
         <div className="flex flex-col gap-2 pt-2 border-t border-border">
           <Button asChild className="w-full">
-            <Link href={`/prepare/plan?job=${job.id}`} onClick={() => onOpenChange(false)}>
+            <Link href={`/prepare/skills?job=${job.id}`} onClick={() => onOpenChange(false)}>
               2주 준비 플랜 보기
             </Link>
           </Button>

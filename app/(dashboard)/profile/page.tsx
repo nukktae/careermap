@@ -135,7 +135,7 @@ export default function ProfilePage() {
           {profile.skills.map((skill) => (
             <span
               key={skill}
-              className="px-3 py-1.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm"
+              className="px-3 py-1.5 rounded-full bg-primary-badge text-primary-badge-text text-sm"
             >
               {skill}
             </span>

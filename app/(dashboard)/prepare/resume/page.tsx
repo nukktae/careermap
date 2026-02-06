@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getJobs } from "@/lib/data/jobs";
+import type { JobDetail } from "@/lib/data/jobs";
 import {
   getResumeOptimizerDefaults,
   getResumeOptimizerResult,
@@ -23,9 +25,54 @@ const LANGUAGE_OPTIONS = [
 ];
 
 export default function PrepareResumePage() {
-  const jobs = getJobs();
+  const searchParams = useSearchParams();
+  const jobsFromData = getJobs();
+  const jobParam = searchParams.get("job");
+  const urlJobId = jobParam ? parseInt(jobParam, 10) : null;
+  const hasUrlJobNotInList =
+    urlJobId != null &&
+    !Number.isNaN(urlJobId) &&
+    !jobsFromData.some((j) => j.id === urlJobId);
+
+  const syntheticJob: JobDetail = {
+    id: urlJobId!,
+    company: "선택한 채용",
+    title: `채용 #${urlJobId}`,
+    location: "",
+    locationFilter: "seoul",
+    type: "",
+    typeValue: "fulltime",
+    experience: "",
+    experienceLevel: "신입",
+    match: 0,
+    badge: "prep",
+    logo: "",
+    matchedSkills: [],
+    missingSkills: [],
+    salary: "",
+    salaryMin: 0,
+    salaryMax: 0,
+    companyType: "스타트업",
+    industry: "IT",
+    postedAt: "",
+    description: "",
+    responsibilities: [],
+    requirements: [],
+    preferred: [],
+  };
+
+  const jobs: JobDetail[] =
+    hasUrlJobNotInList && urlJobId != null
+      ? [syntheticJob, ...jobsFromData]
+      : jobsFromData;
+
+  const initialId =
+    urlJobId != null && !Number.isNaN(urlJobId)
+      ? String(urlJobId)
+      : String(jobsFromData[0]?.id ?? "1");
+  const [targetJobId, setTargetJobId] = useState<string>(initialId);
+
   const samples = getResumeOptimizerDefaults();
-  const [targetJobId, setTargetJobId] = useState<string>(String(jobs[0]?.id ?? "1"));
   const [language, setLanguage] = useState<string>("ko-formal");
   const [beforeText, setBeforeText] = useState("");
   const [loading, setLoading] = useState(false);

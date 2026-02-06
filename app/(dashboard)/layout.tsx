@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { AppIcon } from "@/components/ui/app-icon";
 import { SavedJobsProvider } from "@/lib/saved-jobs-context";
-import { NotificationModal } from "@/components/notifications/notification-modal";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SIDEBAR_COLLAPSED_KEY = "careermap-sidebar-collapsed";
@@ -27,7 +26,6 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [notificationOpen, setNotificationOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -51,16 +49,14 @@ export default function DashboardLayout({
     });
   };
 
-  const sidebarWidth = sidebarCollapsed ? "w-16" : "w-64";
-  const mainMargin = sidebarCollapsed ? "lg:ml-16" : "lg:ml-64";
-  const headerLeft = sidebarCollapsed ? "lg:left-16" : "lg:left-64";
-
+  // Sidebar: collapsed = w-16 (icons only), expanded = w-64 (icons + labels). Toggle persists in localStorage.
   return (
     <SavedJobsProvider>
     <div className="min-h-screen bg-background">
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - collapsible: 접기 (collapse) / 펼치기 (expand) via bottom button */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 bg-card border-r border-border hidden lg:flex flex-col z-40 transition-[width] duration-200 ease-in-out overflow-hidden ${sidebarWidth}`}
+        className={`fixed left-0 top-0 bottom-0 bg-card border-r border-border hidden lg:flex flex-col z-40 transition-[width] duration-200 ease-in-out overflow-hidden ${sidebarCollapsed ? "w-16" : "w-64"}`}
+        aria-expanded={!sidebarCollapsed}
       >
         {/* Logo */}
         <div className="h-16 flex items-center shrink-0 border-b border-border px-3">
@@ -110,21 +106,23 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {/* Collapse toggle */}
+        {/* Collapse / Expand toggle */}
         <div className="shrink-0 p-2 border-t border-border">
           <button
             type="button"
             onClick={toggleSidebar}
+            aria-expanded={!sidebarCollapsed}
+            aria-label={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+            title={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
             className={`w-full flex items-center justify-center p-2 rounded-lg text-foreground-muted hover:text-foreground hover:bg-background-secondary transition-colors ${
               sidebarCollapsed ? "" : "gap-2"
             }`}
-            title={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
           >
             {sidebarCollapsed ? (
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-5 h-5 shrink-0" aria-hidden />
             ) : (
               <>
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-5 h-5 shrink-0" aria-hidden />
                 <span className="text-sm font-medium">접기</span>
               </>
             )}
@@ -145,14 +143,12 @@ export default function DashboardLayout({
           <span className="text-lg font-bold text-foreground">잡자</span>
         </Link>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setNotificationOpen(true)}
-            className="p-2 text-foreground-secondary hover:text-foreground rounded-lg hover:bg-background-secondary"
-            aria-label="알림"
+          <div
+            className="p-2 text-foreground-muted rounded-lg cursor-default"
+            aria-hidden
           >
             <AppIcon name="notification" className="w-5 h-5" />
-          </button>
+          </div>
           <button
             className="p-2 text-foreground-secondary hover:text-foreground"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -212,7 +208,7 @@ export default function DashboardLayout({
 
       {/* Desktop Top Bar */}
       <header
-        className={`fixed top-0 right-0 h-16 bg-card/80 backdrop-blur-xl border-b border-border hidden lg:flex items-center justify-between px-6 z-30 transition-[left] duration-200 ease-in-out ${headerLeft}`}
+        className={`fixed top-0 right-0 h-16 bg-card/80 backdrop-blur-xl border-b border-border hidden lg:flex items-center justify-between px-6 z-30 transition-[left] duration-200 ease-in-out ${sidebarCollapsed ? "lg:left-16" : "lg:left-64"}`}
       >
         <div className="flex items-center gap-4">
           {/* Search */}
@@ -226,15 +222,13 @@ export default function DashboardLayout({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setNotificationOpen(true)}
-            className="p-2 text-foreground-secondary hover:text-foreground rounded-lg hover:bg-background-secondary relative"
-            aria-label="알림"
+          <div
+            className="p-2 text-foreground-muted rounded-lg cursor-default relative"
+            aria-hidden
           >
             <AppIcon name="notification" className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-error-500 rounded-full" />
-          </button>
+          </div>
           <Link
             href="/settings"
             className="p-2 text-foreground-secondary hover:text-foreground rounded-lg hover:bg-background-secondary"
@@ -271,11 +265,9 @@ export default function DashboardLayout({
         })}
       </nav>
 
-      <NotificationModal open={notificationOpen} onOpenChange={setNotificationOpen} />
-
       {/* Main Content */}
       <main
-        className={`pt-14 lg:pt-16 pb-20 lg:pb-8 min-h-screen transition-[margin-left] duration-200 ease-in-out ${mainMargin}`}
+        className={`pt-14 lg:pt-16 pb-20 lg:pb-8 min-h-screen transition-[margin-left] duration-200 ease-in-out ${sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"}`}
       >
         <div className="container-app py-6">{children}</div>
       </main>

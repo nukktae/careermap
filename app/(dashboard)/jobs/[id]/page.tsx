@@ -18,11 +18,15 @@ import {
   Target,
   Plus,
   ExternalLink,
+  ImageIcon,
 } from "lucide-react";
 import { getJobById, getSimilarJobs } from "@/lib/data/jobs";
 import { useSavedJobs } from "@/lib/saved-jobs-context";
 import { MatchExplanationModal } from "@/components/jobs/match-explanation-modal";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LINKAREER_ID_OFFSET } from "@/lib/data/linkareer";
+
+const ANALYZE_CACHE_KEY_PREFIX = "careermap-job-analyze-";
 
 /** API response for /api/linkareer/activity/[activityId] */
 interface LinkareerActivityDetail {
@@ -121,14 +125,22 @@ function getRecruitCategoryDisplay(
   return m?.[1]?.trim() ?? "—";
 }
 
+/** Analyzed section from /api/linkareer/activity/[activityId]/analyze */
+interface AnalyzedSection {
+  title: string;
+  content: string;
+}
+
 function LinkareerJobDetailView({
   detail,
   jobIdNum,
+  activityId,
   isSaved,
   onToggleSaved,
 }: {
   detail: LinkareerActivityDetail;
   jobIdNum: number;
+  activityId: string;
   isSaved: boolean;
   onToggleSaved: () => void;
 }) {
@@ -136,6 +148,66 @@ function LinkareerJobDetailView({
   const org = jp.hiringOrganization;
   const logoUrl = org?.logo || jp.image?.contentUrl;
   const sourceUrl = detail.sourceUrl;
+
+  const [analyzedSections, setAnalyzedSections] = useState<AnalyzedSection[] | null>(null);
+  const [analyzeLoading, setAnalyzeLoading] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [showOriginalImage, setShowOriginalImage] = useState(false);
+
+  const fetchAnalyze = () => {
+    if (!detail.detailImageUrl || !activityId) return;
+    setAnalyzeLoading(true);
+    setAnalyzeError(null);
+    fetch(`/api/linkareer/activity/${activityId}/analyze`)
+      .then(async (res) => {
+        if (!res.ok) {
+          let msg = res.status === 404 ? "상세 분석을 사용할 수 없어요" : "분석 요청에 실패했어요";
+          try {
+            const body = (await res.json()) as { error?: string };
+            if (body?.error) msg = body.error;
+          } catch {
+            // ignore non-JSON body
+          }
+          throw new Error(msg);
+        }
+        return res.json() as Promise<{ sections?: AnalyzedSection[] }>;
+      })
+      .then((data) => {
+        const list = data.sections ?? [];
+        const sections = Array.isArray(list) ? list : [];
+        setAnalyzedSections(sections);
+        try {
+          localStorage.setItem(
+            `${ANALYZE_CACHE_KEY_PREFIX}${activityId}`,
+            JSON.stringify({ sections, fetchedAt: Date.now() })
+          );
+        } catch {
+          // ignore quota/private
+        }
+      })
+      .catch((e: Error) => {
+        setAnalyzeError(e.message);
+        setAnalyzedSections(null);
+      })
+      .finally(() => setAnalyzeLoading(false));
+  };
+
+  useEffect(() => {
+    if (!detail.detailImageUrl || !activityId) return;
+    try {
+      const raw = localStorage.getItem(`${ANALYZE_CACHE_KEY_PREFIX}${activityId}`);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { sections?: AnalyzedSection[] };
+        if (Array.isArray(parsed.sections) && parsed.sections.length > 0) {
+          setAnalyzedSections(parsed.sections);
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    fetchAnalyze();
+  }, [activityId, detail.detailImageUrl]);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -147,7 +219,7 @@ function LinkareerJobDetailView({
         <span>채용 목록으로</span>
       </Link>
 
-      <div className="bg-card rounded-2xl border border-border p-6 mb-6">
+      <div className="bg-card rounded-2xl p-6 mb-6 shadow-sm">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-xl bg-background-secondary flex items-center justify-center text-foreground font-bold text-2xl overflow-hidden">
@@ -212,82 +284,153 @@ function LinkareerJobDetailView({
           </span>
         </div>
 
-        {/* Activity-info block (기업형태, 접수기간, 채용형태, 모집직무, 근무지역, 홈페이지) */}
-        <div className="border border-border rounded-xl p-4 mb-6 bg-background-secondary/50">
-          <dl className="grid gap-3 text-sm">
-            {detail.companyType != null && detail.companyType !== "" && (
-              <div>
-                <dt className="text-foreground-muted font-medium mb-0.5">기업형태</dt>
-                <dd className="text-foreground">{detail.companyType}</dd>
-              </div>
+        <Tabs defaultValue="detail" className="mb-6">
+          <TabsList className="w-full grid grid-cols-3 rounded-xl bg-background-secondary/50 p-1 h-auto">
+            <TabsTrigger value="detail" className="rounded-lg py-2.5 text-sm">
+              상세 내용
+            </TabsTrigger>
+            <TabsTrigger value="summary" className="rounded-lg py-2.5 text-sm">
+              요약
+            </TabsTrigger>
+            <TabsTrigger value="info" className="rounded-lg py-2.5 text-sm">
+              공고 정보
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="detail" className="mt-5">
+            {!detail.detailImageUrl && (
+              <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
+                {jp.description ?? "—"}
+              </p>
             )}
-            <div>
-              <dt className="text-foreground-muted font-medium mb-0.5">접수기간</dt>
-              <dd className="text-foreground">
-                시작일 {formatDateKorean(jp.datePosted)} · 마감일 {formatDateKorean(jp.validThrough)}
-              </dd>
+            {detail.detailImageUrl && (
+              <>
+                {analyzeLoading && (
+                  <div className="rounded-xl bg-background-secondary/30 py-12 text-center">
+                    <p className="text-foreground-secondary">상세 내용 분석 중...</p>
+                    <div className="mt-3 flex justify-center gap-1">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500" />
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500 [animation-delay:0.2s]" />
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500 [animation-delay:0.4s]" />
+                    </div>
+                  </div>
+                )}
+                {!analyzeLoading && analyzeError && (
+                  <div className="space-y-4">
+                    <img
+                      src={detail.detailImageUrl}
+                      alt={jp.title ?? "채용 공고 상세"}
+                      className="max-w-full w-full rounded-lg"
+                    />
+                    <p className="text-sm text-foreground-muted">{analyzeError}</p>
+                    <Button variant="outline" size="sm" onClick={() => fetchAnalyze()}>
+                      OCR 다시 시도
+                    </Button>
+                  </div>
+                )}
+                {!analyzeLoading && analyzedSections && analyzedSections.length > 0 && !showOriginalImage && (
+                  <div className="space-y-6">
+                    {analyzedSections.map((section, i) => (
+                      <div key={i} className="rounded-xl bg-background-secondary/30 p-5">
+                        <h3 className="font-semibold text-foreground mb-3">
+                          {section.title}
+                        </h3>
+                        <p className="text-foreground-secondary whitespace-pre-line leading-relaxed text-sm">
+                          {section.content}
+                        </p>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setShowOriginalImage(true)}
+                      className="inline-flex items-center gap-2 rounded-lg bg-background-secondary/50 px-3 py-2 text-sm text-foreground-secondary hover:bg-background-secondary hover:text-foreground"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      원본 이미지 보기
+                    </button>
+                  </div>
+                )}
+                {!analyzeLoading && showOriginalImage && detail.detailImageUrl && (
+                  <div className="space-y-3">
+                    <img
+                      src={detail.detailImageUrl}
+                      alt={jp.title ?? "채용 공고 상세"}
+                      className="max-w-full w-full rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOriginalImage(false)}
+                      className="text-sm text-primary-500 hover:underline"
+                    >
+                      구조화된 보기로 돌아가기
+                    </button>
+                  </div>
+                )}
+                {!analyzeLoading && detail.detailImageUrl && !analyzedSections?.length && !analyzeError && (
+                  <img
+                    src={detail.detailImageUrl}
+                    alt={jp.title ?? "채용 공고 상세"}
+                    className="max-w-full w-full rounded-lg"
+                  />
+                )}
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="summary" className="mt-5">
+            <div className="rounded-xl bg-background-secondary/30 p-5">
+              <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
+                {jp.description ?? "요약 내용이 없습니다."}
+              </p>
             </div>
-            <div>
-              <dt className="text-foreground-muted font-medium mb-0.5">채용형태</dt>
-              <dd className="text-foreground">{formatEmploymentType(jp.employmentType)}</dd>
-            </div>
-            <div>
-              <dt className="text-foreground-muted font-medium mb-0.5">모집직무</dt>
-              <dd className="text-foreground">
-                {getRecruitCategoryDisplay(jp.description, detail.recruitCategory)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-foreground-muted font-medium mb-0.5">근무지역</dt>
-              <dd className="text-foreground">{formatLocation(jp.jobLocation)}</dd>
-            </div>
-            {org?.sameAs && (
+          </TabsContent>
+
+          <TabsContent value="info" className="mt-5">
+            <dl className="grid gap-4 text-sm rounded-xl bg-background-secondary/30 p-5">
+              {detail.companyType != null && detail.companyType !== "" && (
+                <div>
+                  <dt className="text-foreground-muted font-medium mb-1">기업형태</dt>
+                  <dd className="text-foreground">{detail.companyType}</dd>
+                </div>
+              )}
               <div>
-                <dt className="text-foreground-muted font-medium mb-0.5">홈페이지</dt>
+                <dt className="text-foreground-muted font-medium mb-1">접수기간</dt>
                 <dd className="text-foreground">
-                  <a
-                    href={org.sameAs}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary-500 hover:underline break-all"
-                  >
-                    {org.sameAs}
-                  </a>
+                  시작일 {formatDateKorean(jp.datePosted)} · 마감일 {formatDateKorean(jp.validThrough)}
                 </dd>
               </div>
-            )}
-          </dl>
-        </div>
-
-        {/* Detail content image (poster from linkareer page body) */}
-        {detail.detailImageUrl && (
-          <div className="mb-6">
-            <h2 className="font-semibold text-foreground mb-2">상세 내용</h2>
-            <img
-              src={detail.detailImageUrl}
-              alt={jp.title ?? "채용 공고 상세"}
-              className="max-w-full w-full rounded-lg border border-border"
-            />
-          </div>
-        )}
-
-        {jp.description && !detail.detailImageUrl && (
-          <div className="mb-6">
-            <h2 className="font-semibold text-foreground mb-2">상세 내용</h2>
-            <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
-              {jp.description}
-            </p>
-          </div>
-        )}
-
-        {jp.description && detail.detailImageUrl && (
-          <div className="mb-6">
-            <h2 className="font-semibold text-foreground mb-2">요약</h2>
-            <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
-              {jp.description}
-            </p>
-          </div>
-        )}
+              <div>
+                <dt className="text-foreground-muted font-medium mb-1">채용형태</dt>
+                <dd className="text-foreground">{formatEmploymentType(jp.employmentType)}</dd>
+              </div>
+              <div>
+                <dt className="text-foreground-muted font-medium mb-1">모집직무</dt>
+                <dd className="text-foreground">
+                  {getRecruitCategoryDisplay(jp.description, detail.recruitCategory)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-foreground-muted font-medium mb-1">근무지역</dt>
+                <dd className="text-foreground">{formatLocation(jp.jobLocation)}</dd>
+              </div>
+              {org?.sameAs && (
+                <div>
+                  <dt className="text-foreground-muted font-medium mb-1">홈페이지</dt>
+                  <dd className="text-foreground">
+                    <a
+                      href={org.sameAs}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-500 hover:underline break-all"
+                    >
+                      {org.sameAs}
+                    </a>
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </TabsContent>
+        </Tabs>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <Button asChild className="flex-1">
@@ -297,7 +440,7 @@ function LinkareerJobDetailView({
             </a>
           </Button>
           <Button variant="outline" asChild className="flex-1">
-            <Link href={`/prepare/plan?job=${jobIdNum}`}>
+            <Link href={`/prepare/skills?job=${jobIdNum}`}>
               <Target className="w-5 h-5 mr-2" />
               이 채용 준비하기
             </Link>
@@ -391,6 +534,7 @@ export default function JobDetailPage() {
       <LinkareerJobDetailView
         detail={linkareerDetail}
         jobIdNum={jobIdNum}
+        activityId={activityId}
         isSaved={isSaved(jobIdNum)}
         onToggleSaved={() => toggleSaved(jobIdNum)}
       />
@@ -547,7 +691,7 @@ export default function JobDetailPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <Button asChild className="flex-1">
-            <Link href={`/prepare/plan?job=${job.id}`}>
+            <Link href={`/prepare/skills?job=${job.id}`}>
               <Target className="w-5 h-5 mr-2" />
               이 채용 준비하기
             </Link>

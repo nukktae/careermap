@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -15,8 +16,17 @@ import {
 } from "@/components/ui/select";
 
 export default function PrepareInterviewPage() {
+  const searchParams = useSearchParams();
   const jobs = getJobs();
-  const [jobId, setJobId] = useState<string>(String(jobs[0]?.id ?? "1"));
+  const jobParam = searchParams.get("job");
+  const urlJobId = jobParam ? parseInt(jobParam, 10) : null;
+  const initialJobId =
+    urlJobId != null &&
+    !Number.isNaN(urlJobId) &&
+    jobs.some((j) => j.id === urlJobId)
+      ? String(urlJobId)
+      : String(jobs[0]?.id ?? "1");
+  const [jobId, setJobId] = useState<string>(initialJobId);
   const numId = jobId ? parseInt(jobId, 10) : 1;
   const data = getInterviewPrep(Number.isNaN(numId) ? 1 : numId);
   const [expandedPractice, setExpandedPractice] = useState<number | null>(null);
