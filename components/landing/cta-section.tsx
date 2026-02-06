@@ -1,52 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { Zap } from "lucide-react";
 
 export function CTASection() {
   return (
-    <section className="py-20 lg:py-32 bg-gradient-to-br from-primary-600 to-primary-800 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-      </div>
+    <section id="cta" className="py-24 bg-background">
+      <div className="container-app">
+        <div className="bg-primary-500 rounded-[48px] p-12 md:p-20 text-center text-white relative overflow-hidden">
+          {/* Decorative background icon */}
+          <div
+            className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none"
+            aria-hidden
+          >
+            <Zap
+              className="absolute -top-20 -left-20 w-[400px] h-[400px] rotate-12"
+              strokeWidth={1}
+            />
+          </div>
 
-      <div className="container-app relative">
-        <div className="max-w-3xl mx-auto text-center">
-          {/* Headline */}
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 text-balance">
-            취업 준비, 더 이상 혼자 고민하지 마세요
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-8 relative z-10">
+            취업 준비, 더 이상 혼자 고민하지 마세요.
           </h2>
-
-          {/* Subheadline */}
-          <p className="text-lg sm:text-xl text-white/80 mb-10 text-pretty">
-            AI가 분석하고, 전략을 제시하고, 준비를 도와드립니다.
+          <p className="text-xl text-primary-100 mb-12 relative z-10 max-w-2xl mx-auto leading-relaxed">
+            AI가 분석하고, 전략을 세우고, 당신의 준비를 돕습니다.
             <br className="hidden sm:block" />
-            지금 바로 시작해서 목표 회사에 한 발짝 더 다가가세요.
+            지금 바로 첫 번째 이력서를 분석해 보세요.
           </p>
-
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-              size="lg"
-              asChild
-              className="w-full sm:w-auto text-base px-8 bg-white text-primary-700 hover:bg-white/90"
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 relative z-10">
+            <Link
+              href="/signup"
+              className="px-10 py-5 bg-white text-primary-600 text-lg font-bold rounded-2xl hover:bg-primary-50 transition-all shadow-xl"
             >
-              <Link href="/signup">
-                무료로 시작하기
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              asChild
-              className="w-full sm:w-auto text-base px-8 bg-transparent border-white/30 text-white hover:bg-white/10"
+              무료로 시작하기
+            </Link>
+            <Link
+              href="#features"
+              className="px-10 py-5 bg-primary-700/50 text-white text-lg font-bold rounded-2xl border border-primary-400/30 hover:bg-primary-700 transition-all"
             >
-              <Link href="#features">기능 더 알아보기</Link>
-            </Button>
+              서비스 둘러보기
+            </Link>
           </div>
         </div>
       </div>

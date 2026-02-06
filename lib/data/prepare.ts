@@ -302,6 +302,52 @@ export function normalizeSkillToken(s: string): string {
 }
 
 /**
+ * Split a skill string into normalized "words" for soft matching.
+ * Splits on space, slash, comma, middle dot, and common separators so that
+ * "콘텐츠/사이트운영" and "콘텐츠 기획" can match on "콘텐츠".
+ */
+export function getSkillWords(s: string): string[] {
+  const normalized = normalizeSkillToken(s);
+  const parts = normalized
+    .split(/[\s/·,،、및\n]+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 1);
+  return [...new Set(parts)];
+}
+
+/**
+ * Build a set of all words from profile skills for soft matching.
+ * So "콘텐츠/사이트운영 IT/인터넷" yields words like 콘텐츠, 사이트운영, it, 인터넷.
+ */
+function getProfileWordSet(profileSkills: string[]): Set<string> {
+  const set = new Set<string>();
+  for (const s of profileSkills) {
+    const n = normalizeSkillToken(s);
+    if (n.length > 0) set.add(n);
+    for (const w of getSkillWords(s)) {
+      set.add(w);
+    }
+  }
+  return set;
+}
+
+/** Soft match: true if any word in the required token appears in profile, or whole-token substring match. */
+function tokenMatchesProfile(
+  requiredToken: string,
+  profileWordSet: Set<string>
+): boolean {
+  const n = normalizeSkillToken(requiredToken);
+  if (profileWordSet.has(n)) return true;
+  const words = getSkillWords(requiredToken);
+  if (words.some((w) => profileWordSet.has(w))) return true;
+  for (const profileWord of profileWordSet) {
+    if (profileWord.length < 2) continue;
+    if (n.includes(profileWord) || profileWord.includes(n)) return true;
+  }
+  return false;
+}
+
+/**
  * Extract skill-like tokens from requirement/preferred text (lines split by newline, then comma/및).
  * Used for Linkareer or when we only have raw text.
  */
@@ -318,12 +364,15 @@ export function extractSkillLikeTokens(lines: string[]): string[] {
 }
 
 /**
- * Check if a requirement line is "covered" by profile skills (any token in the line matches).
+ * Check if a requirement line is "covered" by profile skills (soft match: any token/word overlaps).
  */
 function lineMatchesProfile(line: string, profileSkills: string[]): boolean {
-  const tokens = line.split(/[,،、및\n]+/).map((p) => normalizeSkillToken(p.trim())).filter((p) => p.length > 1);
-  const userNorm = new Set(profileSkills.map(normalizeSkillToken));
-  return tokens.some((t) => Array.from(userNorm).some((u) => u.includes(t) || t.includes(u)));
+  const profileWordSet = getProfileWordSet(profileSkills);
+  const tokens = line
+    .split(/[,،、및\n]+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 1);
+  return tokens.some((t) => tokenMatchesProfile(t, profileWordSet));
 }
 
 /**
@@ -345,18 +394,18 @@ export function computeMatchedMissingLines(
 }
 
 /**
- * Compute matched vs missing skills: requiredTokens vs profileSkills (normalized).
+ * Compute matched vs missing skills: requiredTokens vs profileSkills.
+ * Uses soft matching: any word overlap (e.g. "콘텐츠" in profile matches "콘텐츠 기획" in job).
  */
 export function computeMatchedMissing(
   requiredTokens: string[],
   profileSkills: string[]
 ): { matched: string[]; missing: string[] } {
-  const userNorm = new Set(profileSkills.map(normalizeSkillToken));
+  const profileWordSet = getProfileWordSet(profileSkills);
   const matched: string[] = [];
   const missing: string[] = [];
   for (const token of requiredTokens) {
-    const n = normalizeSkillToken(token);
-    const found = Array.from(userNorm).some((u) => u.includes(n) || n.includes(u));
+    const found = tokenMatchesProfile(token, profileWordSet);
     if (found) matched.push(token);
     else missing.push(token);
   }
@@ -364,19 +413,44 @@ export function computeMatchedMissing(
 }
 
 /**
+ * Extract words from a text block for soft matching (e.g. "기획", "서비스" from resume/자기소개서).
+ * Uses getSkillWords so job categories like "기획/전략/경영" can match when they appear in the user's text.
+ */
+function extractWordsFromText(text: string): string[] {
+  if (!text || typeof text !== "string") return [];
+  const words = getSkillWords(text);
+  return words.filter((w) => w.length >= 2);
+}
+
+/**
  * Build a single list of profile skills for job matching.
- * Uses profile.skills and resumeSections.skills (e.g. from mycv.json load).
+ * Uses profile.skills, resumeSections.skills, and words extracted from resume sections + cover letter
+ * (summary, experience, projects, 자기소개서) so that categories like "기획/전략/경영" or "서비스"
+ * match when they appear in the user's CV or self-introduction.
  */
 export function getProfileSkillsForMatch(profile: {
   skills?: string[];
   resumeSections?: Record<string, string>;
+  coverLetterText?: string;
 }): string[] {
   const fromArray = profile.skills ?? [];
   const fromSections = (profile.resumeSections?.skills ?? "")
     .split(/[,،、\n]+/)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
-  const combined = [...fromArray, ...fromSections];
+  const rs = profile.resumeSections ?? {};
+  const wordsFromSummary = extractWordsFromText(rs.summary ?? "");
+  const wordsFromExperience = extractWordsFromText(rs.experience ?? "");
+  const wordsFromProjects = extractWordsFromText(rs.projects ?? "");
+  const wordsFromCoverLetter = extractWordsFromText(profile.coverLetterText ?? "");
+  const combined = [
+    ...fromArray,
+    ...fromSections,
+    ...wordsFromSummary,
+    ...wordsFromExperience,
+    ...wordsFromProjects,
+    ...wordsFromCoverLetter,
+  ];
   return [...new Set(combined)];
 }
 

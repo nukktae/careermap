@@ -4,17 +4,26 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { AppIcon } from "@/components/ui/app-icon";
 import { getJobById } from "@/lib/data/jobs";
-import { useProfile } from "@/lib/hooks/use-profile";
 import {
   getSkillGapFromJobDetail,
   computeMatchedMissingLines,
   type SkillGapContext,
   type SkillGapSectionScore,
 } from "@/lib/data/prepare";
+import { useProfile } from "@/lib/hooks/use-profile";
 import { LINKAREER_ID_OFFSET } from "@/lib/data/linkareer";
-import { User, Check, Target, ChevronRight } from "lucide-react";
+import {
+  Target,
+  ChevronRight,
+  Info,
+  Bot,
+  Film,
+  Sparkles,
+  PenLine,
+  Check,
+  Circle,
+} from "lucide-react";
 
 /** Linkareer activity API response (subset we need). */
 interface LinkareerActivityDetail {
@@ -183,14 +192,220 @@ function useSkillGapContext(
   return { context, loading, error };
 }
 
+/** Check if a requirement/preferred line appears in the matched list (normalized). */
+function isLineMatched(line: string, matched: string[]): boolean {
+  const t = line.trim().toLowerCase();
+  if (!t) return false;
+  return matched.some((m) => {
+    const mNorm = m.trim().toLowerCase();
+    return t === mNorm || t.includes(mNorm) || mNorm.includes(t);
+  });
+}
+
+/** Match summary card: big %, job title, 요건 counts, 상세 button, info box */
+function MatchSummaryCard({
+  jobId,
+  company,
+  jobTitle,
+  overallPercent,
+  requirementsCount,
+  preferredCount,
+  sections,
+}: {
+  jobId: number;
+  company: string;
+  jobTitle: string;
+  overallPercent: number;
+  requirementsCount: number;
+  preferredCount: number;
+  sections: SkillGapSectionScore[];
+}) {
+  return (
+    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+      <div className="flex items-start justify-between mb-8">
+        <div className="flex gap-6">
+          <div className="w-24 h-24 rounded-full border-8 border-slate-100 flex items-center justify-center shrink-0">
+            <span className="text-2xl font-black text-slate-300">
+              {overallPercent}%
+            </span>
+          </div>
+          <div className="flex flex-col justify-center min-w-0">
+            <h3 className="text-lg font-bold text-slate-900 mb-2 truncate">
+              {company} · {jobTitle}
+            </h3>
+            <div className="flex items-center gap-4 text-sm text-slate-500 flex-wrap">
+              <span className="flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-slate-200 shrink-0" />
+                자격 요건: {requirementsCount}개
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-slate-200 shrink-0" />
+                우대 사항: {preferredCount}개
+              </span>
+            </div>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" className="rounded-xl border-slate-200 font-bold shrink-0" asChild>
+          <Link href={`/jobs/${jobId}`}>
+            상세
+            <ChevronRight className="w-4 h-4 ml-0.5" />
+          </Link>
+        </Button>
+      </div>
+      <div className="bg-slate-50 p-4 rounded-2xl flex items-center gap-3">
+        <Info className="w-5 h-5 text-[#2463E9] shrink-0" />
+        <p className="text-sm text-slate-600">
+          이 점수는 요건과 프로필 매칭으로 계산돼요. 프로필을 보강하면 점수가 올라갑니다.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Single qualifications list (자격 요건 or 우대 사항) with check/empty circles */
+function QualificationsList({
+  title,
+  weightLabel,
+  matchedCount,
+  totalCount,
+  lines,
+  matchedSet,
+}: {
+  title: string;
+  weightLabel?: string;
+  matchedCount: number;
+  totalCount: number;
+  lines: string[];
+  matchedSet: string[];
+}) {
+  if (lines.length === 0) return null;
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold text-slate-900">
+          {title}
+          {weightLabel != null && (
+            <span className="text-slate-500 font-normal ml-1">({weightLabel})</span>
+          )}
+        </h3>
+        <span className="text-sm font-bold text-[#2463E9]">
+          {matchedCount} / {totalCount} 매칭됨
+        </span>
+      </div>
+      <div className="space-y-3">
+        {lines.map((line, i) => {
+          const matched = isLineMatched(line, matchedSet);
+          return (
+            <div
+              key={`${i}-${line.slice(0, 20)}`}
+              className="p-5 bg-white rounded-2xl border border-slate-200 flex gap-4"
+            >
+              <div className="mt-1 shrink-0">
+                {matched ? (
+                  <div className="w-5 h-5 rounded-full bg-[#2463E9] flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full border-2 border-slate-200" />
+                )}
+              </div>
+              <p className="text-slate-600 leading-relaxed text-sm">{line}</p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/** Skill gap cards: "보강하면 좋은 스킬" with dashed border and icon */
+const GAP_ICONS = [Bot, Film, Sparkles] as const;
+
+function SkillGapsSection({ missing }: { missing: string[] }) {
+  if (missing.length === 0) return null;
+
+  return (
+    <section>
+      <div className="mb-6">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">이 직무와의 갭</h3>
+        <p className="text-sm text-slate-500">보강하면 좋은 스킬</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {missing.slice(0, 6).map((item, i) => {
+          const Icon = GAP_ICONS[i % GAP_ICONS.length];
+          const title = item.length > 24 ? item.slice(0, 24) + "…" : item;
+          return (
+            <div
+              key={`${i}-${item.slice(0, 15)}`}
+              className="p-6 bg-white rounded-3xl border-2 border-dashed border-slate-200 hover:border-[#2463E9] transition-all group cursor-default"
+            >
+              <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#2463E9] mb-4 group-hover:scale-110 transition-transform">
+                <Icon className="w-6 h-6" />
+              </div>
+              <h4 className="font-bold text-slate-900 mb-2">{title}</h4>
+              <p className="text-sm text-slate-500 leading-snug line-clamp-2">
+                {item}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/** Right sidebar: dark profile summary card */
+function ProfileSummaryCard({
+  skillsCount,
+  experienceCount,
+  projectsCount,
+}: {
+  skillsCount: number;
+  experienceCount: number;
+  projectsCount: number;
+}) {
+  const isEmpty = skillsCount === 0 && experienceCount === 0 && projectsCount === 0;
+
+  return (
+    <div className="sticky top-28 bg-[#1A1A1A] p-8 rounded-[32px] text-white">
+      <h3 className="text-xl font-bold mb-8">내 프로필 요약</h3>
+      <div className="space-y-6 mb-10">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400">스킬</span>
+          <span className="font-bold">{skillsCount}개</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400">경력</span>
+          <span className="font-bold">{experienceCount}건</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400">프로젝트</span>
+          <span className="font-bold">{projectsCount}개</span>
+        </div>
+      </div>
+      <div className="h-px bg-gray-800 mb-8" />
+      <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+        {isEmpty
+          ? "프로필에 정보가 부족합니다.\n경험과 스킬을 추가하여 매칭률을 높여보세요."
+          : "프로필을 꾸준히 보강하면 더 많은 채용과 매칭될 수 있어요."}
+      </p>
+      <Button asChild className="w-full h-14 bg-[#2463E9] hover:bg-[#1D4ED8] text-white font-bold rounded-2xl">
+        <Link href="/profile/edit" className="flex items-center justify-center gap-2">
+          <PenLine className="w-5 h-5" />
+          프로필 수정
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
 function PrepareSkillsContent() {
   const searchParams = useSearchParams();
   const { profile } = useProfile();
   const jobParam = searchParams.get("job");
-  const jobId =
-    jobParam != null ? parseInt(jobParam, 10) : null;
-  const validJobId =
-    jobId != null && !Number.isNaN(jobId) ? jobId : null;
+  const jobId = jobParam != null ? parseInt(jobParam, 10) : null;
+  const validJobId = jobId != null && !Number.isNaN(jobId) ? jobId : null;
 
   const { context, loading, error } = useSkillGapContext(
     validJobId,
@@ -199,17 +414,22 @@ function PrepareSkillsContent() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-background-secondary" />
-        <div className="h-48 animate-pulse rounded-xl bg-background-secondary" />
+      <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
+          <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" />
+          <div className="h-64 animate-pulse rounded-3xl bg-slate-100" />
+        </div>
+        <div className="lg:col-span-4">
+          <div className="h-80 animate-pulse rounded-[32px] bg-slate-800" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <p className="text-foreground-muted">{error}</p>
+      <div className="max-w-[1200px] mx-auto space-y-6">
+        <p className="text-slate-500">{error}</p>
         <Button asChild variant="outline">
           <Link href="/jobs">채용 찾기</Link>
         </Button>
@@ -219,21 +439,17 @@ function PrepareSkillsContent() {
 
   if (!validJobId || !context) {
     return (
-      <div className="space-y-6">
+      <div className="max-w-[1200px] mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground mb-1">
-            이 직무와의 스킬 갭
-          </h1>
-          <p className="text-foreground-secondary">
+          <h1 className="text-2xl font-bold text-slate-900 mb-1">이 직무와의 스킬 갭</h1>
+          <p className="text-slate-500">
             채용 상세에서 &quot;이 채용 준비하기&quot;를 누르면 이 직무와의 스킬 갭을 볼 수 있어요. 위에서 저장한 채용을 선택하거나 아래에서 채용 찾기로 이동하세요.
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <Target className="mx-auto h-12 w-12 text-foreground-muted mb-4" />
-          <p className="text-foreground-secondary mb-4">
-            비교할 채용을 선택해 주세요
-          </p>
-          <Button asChild>
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+          <Target className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+          <p className="text-slate-500 mb-4">비교할 채용을 선택해 주세요</p>
+          <Button asChild className="bg-[#2463E9] hover:bg-[#1D4ED8]">
             <Link href="/jobs">채용 찾기</Link>
           </Button>
         </div>
@@ -241,208 +457,100 @@ function PrepareSkillsContent() {
     );
   }
 
-  const { company, jobTitle, requirements, preferred, matched, missing } = context;
-  const hasGap = matched.length > 0 || missing.length > 0;
+  const {
+    company,
+    jobTitle,
+    requirements,
+    preferred,
+    matched,
+    missing,
+  } = context;
+
   const totalItems = matched.length + missing.length;
   const overallPercent =
     context.breakdown?.overallPercent ??
     (totalItems > 0 ? Math.round((matched.length / totalItems) * 100) : 0);
-  const sections = context.breakdown?.sections ?? (totalItems > 0
-    ? [
-        {
-          label: "요건 충족",
-          matched: matched.length,
-          total: totalItems,
-          weightPercent: 100,
-        },
-      ]
-    : []);
+
+  const sections = context.breakdown?.sections ?? [];
+  const reqSection = sections.find((s) => s.label === "자격 요건");
+  const prefSection = sections.find((s) => s.label === "우대 사항");
+
+  const skillsCount = profile?.skills?.length ?? 0;
+  const experienceCount = profile?.experience?.length ?? 0;
+  const projectsCount = profile?.projects?.length ?? 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground mb-1">
-          이 직무와의 스킬 갭
-        </h1>
-        <p className="text-foreground-secondary">
-          이 직무와 내 프로필을 비교했어요
-        </p>
-      </div>
-
-      {/* Job context card with match % and section bars (like match modal) */}
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
-        <div className="flex items-center gap-4 p-4 border-b border-border">
-          <div className="min-w-0 flex-1 flex items-center gap-4">
-            {(overallPercent > 0 || totalItems > 0) && (
-              <div className="relative w-14 h-14 shrink-0">
-                <svg className="w-14 h-14 -rotate-90">
-                  <circle
-                    cx="28"
-                    cy="28"
-                    r="24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    className="text-background-secondary"
-                  />
-                  <circle
-                    cx="28"
-                    cy="28"
-                    r="24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    strokeDasharray={`${overallPercent * 1.51} 151`}
-                    strokeLinecap="round"
-                    className={
-                      overallPercent >= 70
-                        ? "text-success-500"
-                        : overallPercent >= 40
-                          ? "text-warning-500"
-                          : "text-error-500"
-                    }
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm font-bold text-foreground">
-                    {overallPercent}%
-                  </span>
-                </div>
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="font-semibold text-foreground truncate">
-                {company} · {jobTitle}
-              </p>
-              <p className="text-sm text-foreground-muted">
-                자격 요건 {requirements.length}개 · 우대 {preferred.length}개
-                {sections.length > 0 && " · 이 점수는 요건과 프로필 매칭으로 계산돼요"}
-              </p>
-            </div>
+    <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Left column */}
+      <div className="lg:col-span-8 space-y-8">
+        <section>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-1">스킬 갭</h2>
+            <p className="text-slate-500">이 직무와 내 프로필을 비교했어요</p>
           </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/jobs/${validJobId}`}>
-              상세 <ChevronRight className="h-4 w-4 ml-0.5" />
-            </Link>
-          </Button>
-        </div>
 
-        {/* Section progress bars (like match modal) */}
-        {sections.length > 0 && (
-          <div className="px-4 pb-4 space-y-4">
-            {sections.map((sec) => (
-              <div key={sec.label} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">
-                    {sec.label}
-                    {sec.weightPercent != null && (
-                      <span className="text-foreground-muted font-normal">
-                        {" "}({sec.weightPercent}%)
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-sm font-semibold text-foreground">
-                    {sec.matched}/{sec.total}
-                  </span>
-                </div>
-                <div className="h-2 bg-background-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary-500 rounded-full transition-all"
-                    style={{
-                      width: `${sec.total > 0 ? (sec.matched / sec.total) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+          <MatchSummaryCard
+            jobId={validJobId}
+            company={company}
+            jobTitle={jobTitle}
+            overallPercent={overallPercent}
+            requirementsCount={requirements.length}
+            preferredCount={preferred.length}
+            sections={sections}
+          />
+        </section>
+
+        {requirements.length > 0 && (
+          <QualificationsList
+            title="자격 요건"
+            weightLabel={
+              reqSection?.weightPercent != null
+                ? `${reqSection.weightPercent}%`
+                : undefined
+            }
+            matchedCount={requirements.filter((r) => isLineMatched(r, matched)).length}
+            totalCount={requirements.length}
+            lines={requirements}
+            matchedSet={matched}
+          />
+        )}
+
+        {preferred.length > 0 && (
+          <QualificationsList
+            title="우대 사항"
+            weightLabel={
+              prefSection?.weightPercent != null
+                ? `${prefSection.weightPercent}%`
+                : requirements.length > 0
+                  ? "50%"
+                  : "100%"
+            }
+            matchedCount={preferred.filter((p) => isLineMatched(p, matched)).length}
+            totalCount={preferred.length}
+            lines={preferred}
+            matchedSet={matched}
+          />
+        )}
+
+        <SkillGapsSection missing={missing} />
+
+        {matched.length === 0 && missing.length === 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center">
+            <p className="text-slate-500">
+              이 채용의 요건을 프로필과 비교한 결과입니다. 요건이 없거나 분석 중이에요.
+            </p>
           </div>
         )}
-        {(requirements.length > 0 || preferred.length > 0) && (
-          <ul className="px-4 pb-4 space-y-2 text-sm text-foreground-secondary">
-            {requirements.slice(0, 5).map((r, i) => (
-              <li key={`req-${i}`} className="flex gap-2">
-                <span className="text-foreground-muted shrink-0">·</span>
-                <span>{r}</span>
-              </li>
-            ))}
-            {requirements.length > 5 && (
-              <li className="text-foreground-muted">
-                외 {requirements.length - 5}개
-              </li>
-            )}
-            {requirements.length === 0 && preferred.slice(0, 3).map((p, i) => (
-              <li key={`pref-${i}`} className="flex gap-2">
-                <span className="text-foreground-muted shrink-0">·</span>
-                <span>{p}</span>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
 
-      {/* Profile summary */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-background-secondary px-3 py-1.5 text-sm text-foreground">
-          <User className="h-4 w-4 text-foreground-muted" />
-          스킬 {profile.skills?.length ?? 0}개 · 경력 {profile.experience?.length ?? 0}건 · 프로젝트 {profile.projects?.length ?? 0}개
-        </span>
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/profile/edit">프로필 수정</Link>
-        </Button>
+      {/* Right column: profile summary */}
+      <div className="lg:col-span-4">
+        <ProfileSummaryCard
+          skillsCount={skillsCount}
+          experienceCount={experienceCount}
+          projectsCount={projectsCount}
+        />
       </div>
-
-      {/* Gap: matched vs missing */}
-      {hasGap && (
-        <div className="space-y-4">
-          <h2 className="text-sm font-medium text-foreground">
-            이 직무와의 갭
-          </h2>
-          {matched.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-foreground-muted mb-2">
-                보유 스킬
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {matched.map((s) => (
-                  <span
-                    key={s}
-                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm text-foreground"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          {missing.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-foreground-muted mb-2">
-                보강하면 좋은 스킬
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {missing.map((s) => (
-                  <span
-                    key={s}
-                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-sm text-foreground"
-                  >
-                    <Target className="h-3.5 w-3.5" />
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {!hasGap && (
-        <div className="rounded-2xl border border-border bg-card p-6 text-center">
-          <p className="text-foreground-secondary">
-            이 채용의 요건을 프로필과 비교한 결과입니다. 요건이 없거나 분석 중이에요.
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -451,9 +559,14 @@ export default function PrepareSkillsPage() {
   return (
     <Suspense
       fallback={
-        <div className="space-y-6">
-          <div className="h-8 w-48 animate-pulse rounded-lg bg-background-secondary" />
-          <div className="h-48 animate-pulse rounded-xl bg-background-secondary" />
+        <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 space-y-8">
+            <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" />
+            <div className="h-64 animate-pulse rounded-3xl bg-slate-100" />
+          </div>
+          <div className="lg:col-span-4">
+            <div className="h-80 animate-pulse rounded-[32px] bg-slate-800" />
+          </div>
         </div>
       }
     >

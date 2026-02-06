@@ -1,23 +1,42 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Bookmark } from "lucide-react";
 import { getJobById } from "@/lib/data/jobs";
+import type { Job } from "@/lib/data/jobs";
+import { mapLinkareerNodeToJob, type LinkareerResponse } from "@/lib/data/linkareer";
 import { useSavedJobs } from "@/lib/saved-jobs-context";
 import { JobCard } from "@/components/jobs/job-card";
 
 type SortOption = "savedAt" | "match";
 
+function resolveJob(jobId: number, linkareerJobs: Job[]): Job | undefined {
+  const fromStatic = getJobById(jobId);
+  if (fromStatic) return fromStatic;
+  return linkareerJobs.find((j) => j.id === jobId);
+}
+
 export default function SavedJobsPage() {
   const { savedWithDates, isSaved, toggleSaved } = useSavedJobs();
   const [sortBy, setSortBy] = useState<SortOption>("savedAt");
+  const [linkareerJobs, setLinkareerJobs] = useState<Job[]>([]);
+
+  useEffect(() => {
+    fetch("/data/linkareer-recruits.json")
+      .then((res) => res.json())
+      .then((data: LinkareerResponse) => {
+        const nodes = data.data?.activities?.nodes ?? [];
+        setLinkareerJobs(nodes.map(mapLinkareerNodeToJob));
+      })
+      .catch(() => setLinkareerJobs([]));
+  }, []);
 
   const savedJobs = useMemo(() => {
     const entries = savedWithDates
-      .map((e) => ({ entry: e, job: getJobById(e.jobId) }))
-      .filter((x): x is { entry: { jobId: number; savedAt: number }; job: NonNullable<ReturnType<typeof getJobById>> } => x.job != null);
+      .map((e) => ({ entry: e, job: resolveJob(e.jobId, linkareerJobs) }))
+      .filter((x): x is { entry: { jobId: number; savedAt: number }; job: Job } => x.job != null);
 
     if (sortBy === "savedAt") {
       entries.sort((a, b) => b.entry.savedAt - a.entry.savedAt);
@@ -25,7 +44,7 @@ export default function SavedJobsPage() {
       entries.sort((a, b) => b.job.match - a.job.match);
     }
     return entries;
-  }, [savedWithDates, sortBy]);
+  }, [savedWithDates, sortBy, linkareerJobs]);
 
   const handleToggleSave = (jobId: number, e: React.MouseEvent) => {
     e.preventDefault();

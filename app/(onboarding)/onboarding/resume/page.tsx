@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -203,9 +203,10 @@ export default function ResumeUploadPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
   const [draggingOver, setDraggingOver] = useState<UploadType | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  type Phase = "idle" | "uploading" | "analyzing" | "done" | "saving";
+  const [phase, setPhase] = useState<Phase>("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<OnewaveResumeAnalysis | null>(null);
   const [currentTip, setCurrentTip] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -252,24 +253,22 @@ export default function ResumeUploadPage() {
     setFile(type, null);
   }, [setFile]);
 
-  const handleUpload = async () => {
+  const handleAnalyze = async () => {
     if (!resumeFile) return;
 
     setError(null);
-    setIsUploading(true);
+    setPhase("uploading");
     setUploadProgress(0);
 
     const progressInterval = setInterval(() => {
       setUploadProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return prev;
-        }
-        return prev + 10;
+        if (prev >= 85) return prev;
+        return prev + Math.random() * 8 + 4;
       });
-    }, 200);
+    }, 400);
 
     try {
+      setPhase("analyzing");
       const formData = new FormData();
       formData.set("file", resumeFile, resumeFile.name);
 
@@ -288,34 +287,45 @@ export default function ResumeUploadPage() {
           (errBody as { error?: string })?.error ??
           "이력서 분석에 실패했어요. 다시 시도해 주세요.";
         setError(typeof message === "string" ? message : "이력서 분석에 실패했어요.");
-        setIsUploading(false);
+        setPhase("idle");
         return;
       }
 
       const analysis = (await res.json()) as OnewaveResumeAnalysis;
-      const patch = mapOnewaveToProfile(analysis);
-      await updateProfile(patch);
+      setAnalysisResult(analysis);
+      setPhase("done");
     } catch (e) {
       clearInterval(progressInterval);
       setError(
         e instanceof Error ? e.message : "이력서 분석 중 오류가 발생했어요. 다시 시도해 주세요."
       );
-      setIsUploading(false);
-      return;
+      setPhase("idle");
     }
-
-    setIsUploading(false);
-    setIsAnalyzing(true);
-
-    const tipInterval = setInterval(() => {
-      setCurrentTip((prev) => (prev + 1) % tips.length);
-    }, 3000);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    clearInterval(tipInterval);
-    router.push("/onboarding/profile");
   };
 
-  const canSubmit = resumeFile && !isUploading;
+  const handleSaveAndContinue = async () => {
+    if (!analysisResult) return;
+    setError(null);
+    setPhase("saving");
+    try {
+      const patch = mapOnewaveToProfile(analysisResult);
+      await updateProfile(patch);
+      router.push("/onboarding/profile");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "프로필 저장에 실패했어요.");
+      setPhase("done");
+    }
+  };
+
+  const canSubmit = !!resumeFile && phase === "idle";
+  const isInProgress = phase === "uploading" || phase === "analyzing" || phase === "saving";
+
+  useEffect(() => {
+    if (phase !== "uploading" && phase !== "analyzing") return;
+    const interval = setInterval(() => setCurrentTip((prev) => (prev + 1) % tips.length), 3000);
+    return () => clearInterval(interval);
+  }, [phase]);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
@@ -338,7 +348,7 @@ export default function ResumeUploadPage() {
         </div>
 
         {/* Main content */}
-        {!isAnalyzing ? (
+        {phase === "idle" ? (
           <div className="bg-card rounded-2xl border border-border shadow-lg p-8">
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -390,41 +400,19 @@ export default function ResumeUploadPage() {
               </div>
             )}
 
-            {isUploading && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-foreground-secondary">업로드 중...</span>
-                  <span className="text-foreground">{uploadProgress}%</span>
-                </div>
-                <div className="h-2 bg-background-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary-500 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
             <Button
-              onClick={handleUpload}
+              onClick={handleAnalyze}
               className="w-full h-12 mt-6"
               disabled={!canSubmit}
             >
-              {isUploading ? (
-                "업로드 중..."
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  AI 분석 시작
-                </>
-              )}
+              <Sparkles className="w-5 h-5 mr-2" />
+              AI 분석 시작
             </Button>
           </div>
-        ) : (
-          /* Analyzing state */
+        ) : phase === "uploading" || phase === "analyzing" ? (
+          /* Real-time analysis progress */
           <div className="bg-card rounded-2xl border border-border shadow-lg p-8 text-center">
-            {/* AI smart lines animation */}
-            <div className="relative w-24 h-24 mx-auto mb-6">
+            <div className="relative w-20 h-20 mx-auto mb-6">
               <svg
                 viewBox="0 0 64 64"
                 className="w-full h-full text-primary-500"
@@ -433,71 +421,137 @@ export default function ResumeUploadPage() {
                 strokeWidth="1.5"
                 strokeLinecap="round"
               >
-                {/* Outer scan ring */}
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  className="text-primary-500/40"
-                  strokeDasharray="8 4"
-                  style={{
-                    animation: "ai-scan-rotate 3s linear infinite",
-                  }}
-                />
-                {/* Inner ring */}
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="20"
-                  className="text-primary-500/60"
-                  strokeDasharray="6 3"
-                  style={{
-                    animation: "ai-scan-rotate 2.5s linear infinite reverse",
-                  }}
-                />
-                {/* Neural / connection lines */}
-                <path
-                  d="M32 12 L32 24 M32 40 L32 52 M12 32 L24 32 M40 32 L52 32 M18 18 L26 26 M38 38 L46 46 M46 18 L38 26 M18 46 L26 38"
-                  strokeDasharray="40 80"
-                  style={{
-                    animation: "ai-line-draw 2s ease-in-out infinite alternate",
-                  }}
-                />
-                {/* Center node */}
+                <circle cx="32" cy="32" r="28" className="text-primary-500/30" strokeDasharray="8 4" style={{ animation: "ai-scan-rotate 3s linear infinite" }} />
+                <circle cx="32" cy="32" r="20" className="text-primary-500/50" strokeDasharray="6 3" style={{ animation: "ai-scan-rotate 2.5s linear infinite reverse" }} />
                 <circle cx="32" cy="32" r="4" fill="currentColor" className="animate-pulse opacity-90" />
-                {/* Orbiting nodes */}
-                <circle cx="32" cy="14" r="2" fill="currentColor" className="text-primary-400 opacity-80" style={{ animation: "ai-node-pulse 1.5s ease-in-out infinite" }} />
-                <circle cx="50" cy="32" r="2" fill="currentColor" className="text-primary-400 opacity-80" style={{ animation: "ai-node-pulse 1.5s ease-in-out infinite 0.2s" }} />
-                <circle cx="32" cy="50" r="2" fill="currentColor" className="text-primary-400 opacity-80" style={{ animation: "ai-node-pulse 1.5s ease-in-out infinite 0.4s" }} />
-                <circle cx="14" cy="32" r="2" fill="currentColor" className="text-primary-400 opacity-80" style={{ animation: "ai-node-pulse 1.5s ease-in-out infinite 0.6s" }} />
               </svg>
             </div>
-
-            <h2 className="text-2xl font-bold text-foreground mb-2">
-              이력서·자기소개서 분석 중...
+            <h2 className="text-xl font-bold text-foreground mb-1">
+              {phase === "uploading" ? "파일 업로드 중" : "이력서 분석 중"}
             </h2>
-            <p className="text-foreground-secondary mb-8">
-              AI가 이력서와 자기소개서를 분석하고 있어요. 잠시만 기다려 주세요.
+            <p className="text-foreground-secondary text-sm mb-6">
+              {phase === "uploading"
+                ? "서버로 전송하고 있어요."
+                : "AI가 내용을 추출하고 있어요. 잠시만 기다려 주세요."}
             </p>
-
-            {/* Progress bar */}
-            <div className="max-w-sm mx-auto mb-8">
+            <div className="max-w-xs mx-auto">
               <div className="h-2 bg-background-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-primary-500 rounded-full animate-shimmer" style={{ width: "60%" }} />
+                <div
+                  className="h-full bg-primary-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, uploadProgress)}%` }}
+                />
               </div>
+              <p className="text-xs text-foreground-muted mt-2">{Math.min(100, Math.round(uploadProgress))}%</p>
             </div>
-
-            {/* Rotating tips */}
-            <div className="p-4 rounded-xl bg-background-secondary max-w-sm mx-auto">
-              <div className="flex items-center gap-2 text-sm text-foreground-secondary">
-                <Lightbulb className="w-4 h-4 text-warning-500 flex-shrink-0" />
-                <p className="animate-fade-in" key={currentTip}>
-                  {tips[currentTip]}
-                </p>
+            <div className="mt-6 p-3 rounded-xl bg-background-secondary/80 max-w-sm mx-auto">
+              <div className="flex items-center gap-2 text-sm text-foreground-secondary justify-center">
+                <Lightbulb className="w-4 h-4 text-warning-500 shrink-0" />
+                <span key={currentTip}>{tips[currentTip]}</span>
               </div>
             </div>
           </div>
-        )}
+        ) : (phase === "done" || phase === "saving") && analysisResult ? (
+          /* Analysis result — clean summary before saving to profile */
+          <div className="bg-card rounded-2xl border border-border shadow-lg overflow-hidden">
+            <div className="p-6 border-b border-border bg-primary-50 dark:bg-primary-950/20">
+              <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400">
+                <Sparkles className="w-5 h-5" />
+                <span className="font-semibold">분석 완료</span>
+              </div>
+              <p className="text-sm text-foreground-secondary mt-1">이력서에서 추출한 정보예요. 프로필에 저장할 수 있어요.</p>
+            </div>
+            <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+              <section>
+                <h3 className="text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-2">기본 정보</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {analysisResult.name && <div><span className="text-foreground-muted">이름</span> <span className="text-foreground">{analysisResult.name}</span></div>}
+                  {analysisResult.email && <div><span className="text-foreground-muted">이메일</span> <span className="text-foreground">{analysisResult.email}</span></div>}
+                  {analysisResult.phone && <div><span className="text-foreground-muted">연락처</span> <span className="text-foreground">{analysisResult.phone}</span></div>}
+                  {analysisResult.desired_job && <div className="sm:col-span-2"><span className="text-foreground-muted">희망 직무</span> <span className="text-foreground">{analysisResult.desired_job}</span></div>}
+                </div>
+              </section>
+              {analysisResult.educations?.length > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-2">학력</h3>
+                  <ul className="space-y-1 text-sm text-foreground">
+                    {analysisResult.educations.map((ed, i) => (
+                      <li key={i}>{ed.university} · {ed.major} ({ed.graduation_year}){ed.gpa ? ` · ${ed.gpa}` : ""}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {analysisResult.skills?.length > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-2">스킬</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {analysisResult.skills.slice(0, 20).map((s, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded-md bg-background-secondary text-sm text-foreground">{s}</span>
+                    ))}
+                    {analysisResult.skills.length > 20 && <span className="text-foreground-muted text-sm">+{analysisResult.skills.length - 20}</span>}
+                  </div>
+                </section>
+              )}
+              {analysisResult.experiences?.length > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-2">경력 요약</h3>
+                  <ul className="space-y-2 text-sm text-foreground">
+                    {analysisResult.experiences.slice(0, 5).map((exp, i) => (
+                      <li key={i} className="pl-3 border-l-2 border-primary-200 dark:border-primary-800">{exp}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {analysisResult.projects?.length > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-2">프로젝트</h3>
+                  <ul className="space-y-2 text-sm">
+                    {analysisResult.projects.slice(0, 3).map((p, i) => (
+                      <li key={i}>
+                        <span className="font-medium text-foreground">{p.name}</span>
+                        {p.tech_stack?.length > 0 && <span className="text-foreground-muted"> · {p.tech_stack.slice(0, 3).join(", ")}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
+            <div className="p-6 border-t border-border bg-background-secondary/30">
+              {error && (
+                <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-error-50 dark:bg-error-950/20 text-error-600 dark:text-error-400 text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => { setPhase("idle"); setAnalysisResult(null); setError(null); }}
+                  disabled={phase === "saving"}
+                >
+                  다시 분석
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSaveAndContinue}
+                  disabled={phase === "saving"}
+                >
+                  {phase === "saving" ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" aria-hidden>
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      저장 중...
+                    </span>
+                  ) : (
+                    "프로필에 저장하고 계속"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

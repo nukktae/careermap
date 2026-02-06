@@ -1,169 +1,177 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Check, X, Sparkles } from "lucide-react";
+import { Check, Sparkles, Star } from "lucide-react";
 
 const plans = [
   {
-    name: "Free",
-    nameKr: "무료",
+    id: "plan-free",
+    name: "무료",
+    subtitle: "취업 준비를 막 시작했다면",
     price: "0",
-    period: "",
-    description: "취업 준비를 시작하는 분들을 위한 기본 플랜",
+    period: "/ 월",
     features: [
-      { text: "월 20개 채용 매칭", included: true },
-      { text: "기본 스킬 갭 분석", included: true },
-      { text: "월 1회 이력서 최적화", included: true },
-      { text: "기본 지원 현황 추적", included: true },
-      { text: "자소서 가이드", included: false },
-      { text: "면접 준비 가이드", included: false },
-      { text: "AI 인사이트", included: false },
+      "월 20회 채용 공고 매칭",
+      "기본 스킬 갭 분석",
+      "월 1회 이력서 최적화",
+      "기본 지원 현황 추적",
     ],
-    cta: "무료로 시작하기",
+    cta: "시작하기",
     href: "/signup",
     popular: false,
+    dark: false,
   },
   {
-    name: "Premium",
-    nameKr: "프리미엄",
+    id: "plan-premium",
+    name: "프리미엄 (월간)",
+    subtitle: "본격적으로 취업을 준비한다면",
     price: "14,900",
-    period: "/월",
-    description: "본격적인 취업 준비를 위한 모든 기능 포함",
+    period: "/ 월",
     features: [
-      { text: "무제한 채용 매칭", included: true },
-      { text: "상세 스킬 갭 분석", included: true },
-      { text: "무제한 이력서 최적화", included: true },
-      { text: "고급 지원 현황 추적", included: true },
-      { text: "자소서 가이드", included: true },
-      { text: "면접 준비 가이드", included: true },
-      { text: "AI 인사이트", included: true },
+      "무제한 채용 공고 매칭",
+      "상세 스킬 갭 분석",
+      "무제한 이력서 최적화",
+      "고급 지원 현황 추적",
+      "자소서 & 면접 가이드 전체 제공",
     ],
-    cta: "프리미엄 시작하기",
+    cta: "구독하기",
     href: "/signup?plan=premium",
     popular: true,
+    dark: false,
   },
   {
-    name: "Annual",
-    nameKr: "연간",
+    id: "plan-annual",
+    name: "연간 플랜",
+    subtitle: "장기적인 커리어 성장을 위해",
     price: "149,000",
-    period: "/년",
-    description: "연간 결제 시 2개월 무료 (17% 할인)",
+    period: "/ 년",
+    badge: "2개월 무료 혜택",
     features: [
-      { text: "프리미엄 모든 기능", included: true },
-      { text: "연 2개월 무료", included: true },
-      { text: "우선 고객 지원", included: true },
-      { text: "신규 기능 조기 접근", included: true },
-      { text: "1:1 커리어 상담 1회", included: true },
-      { text: "이력서 전문가 피드백", included: true },
-      { text: "모의 면접 1회", included: true },
-      { text: "취업 성공 시 환불 보장", included: true },
+      "프리미엄 모든 기능 포함",
+      "1:1 커리어 컨설팅 (연 1회)",
+      "이력서 전문가 피드백",
+      "AI 모의 면접 무제한",
+      "취업 성공 환급 보장",
     ],
-    cta: "연간 플랜 시작하기",
+    cta: "지금 시작하기",
     href: "/signup?plan=annual",
     popular: false,
+    dark: true,
   },
 ];
 
 export function PricingSection() {
   return (
-    <section id="pricing" className="py-20 lg:py-32 bg-background">
+    <section id="pricing" className="py-24 bg-background">
       <div className="container-app">
-        {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-primary-badge text-primary-badge-text text-sm font-medium mb-4">
-            요금제
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4 text-balance">
-            투자한 만큼 돌아오는 가치
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-foreground mb-4">
+            합리적인 요금제
           </h2>
-          <p className="text-lg text-foreground-secondary">
-            취업 성공으로 얻는 연봉 상승을 생각하면, 가장 현명한 투자입니다.
+          <p className="text-foreground-secondary">
+            당신의 준비 속도와 목표에 맞는 플랜을 선택하세요.
           </p>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {plans.map((plan) => (
             <div
-              key={plan.name}
-              className={`relative bg-card rounded-2xl border ${
-                plan.popular
-                  ? "border-primary-500 shadow-lg shadow-primary-500/10"
-                  : "border-border"
-              } overflow-hidden`}
+              key={plan.id}
+              id={plan.id}
+              className={`relative flex flex-col p-10 rounded-[40px] border ${
+                plan.dark
+                  ? "bg-gray-900 text-white border-gray-800 dark:bg-gray-950 dark:border-gray-800"
+                  : plan.popular
+                    ? "border-2 border-primary-500 bg-card shadow-2xl shadow-primary-100/50 dark:shadow-primary-900/20"
+                    : "border-border bg-card"
+              }`}
             >
-              {/* Popular badge */}
               {plan.popular && (
-                <div className="absolute top-0 right-0 bg-primary-500 text-white text-xs font-semibold px-3 py-1 rounded-bl-lg flex items-center gap-1">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
-                  인기
+                  가장 인기 있는
                 </div>
               )}
 
-              <div className="p-6 lg:p-8">
-                {/* Plan name */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    {plan.nameKr}
-                  </h3>
-                  <p className="text-sm text-foreground-secondary">
-                    {plan.description}
-                  </p>
-                </div>
-
-                {/* Price */}
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-foreground">
-                    ₩{plan.price}
-                  </span>
-                  <span className="text-foreground-secondary">{plan.period}</span>
-                </div>
-
-                {/* CTA */}
-                <Button
-                  asChild
-                  className={`w-full mb-6 ${
-                    plan.popular
-                      ? ""
-                      : "bg-white hover:bg-gray-100 text-foreground border border-border dark:bg-white dark:hover:bg-gray-100 dark:text-foreground"
+              <div className="mb-8">
+                <h3
+                  className={`text-xl font-bold mb-2 ${
+                    plan.dark ? "text-white" : "text-foreground"
                   }`}
-                  variant={plan.popular ? "default" : "secondary"}
                 >
-                  <Link href={plan.href}>{plan.cta}</Link>
-                </Button>
-
-                {/* Features */}
-                <ul className="space-y-3">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      {feature.included ? (
-                        <Check className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
-                      ) : (
-                        <X className="w-5 h-5 text-foreground-muted flex-shrink-0 mt-0.5" />
-                      )}
-                      <span
-                        className={
-                          feature.included
-                            ? "text-foreground"
-                            : "text-foreground-muted"
-                        }
-                      >
-                        {feature.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                  {plan.name}
+                </h3>
+                <p
+                  className={
+                    plan.dark
+                      ? "text-gray-400 text-sm"
+                      : "text-foreground-secondary text-sm"
+                  }
+                >
+                  {plan.subtitle}
+                </p>
               </div>
+
+              <div className="mb-8">
+                <span
+                  className={`text-4xl font-bold ${
+                    plan.dark ? "text-white" : "text-foreground"
+                  }`}
+                >
+                  ₩{plan.price}
+                </span>
+                <span
+                  className={
+                    plan.dark
+                      ? "text-gray-500 text-sm"
+                      : "text-foreground-muted text-sm"
+                  }
+                >
+                  {plan.period}
+                </span>
+                {plan.badge && (
+                  <div className="mt-2 text-primary-400 text-xs font-bold">
+                    {plan.badge}
+                  </div>
+                )}
+              </div>
+
+              <ul className="space-y-4 mb-12 flex-1">
+                {plan.features.map((item, i) => (
+                  <li
+                    key={item}
+                    className={`flex items-center gap-3 text-sm ${
+                      plan.dark
+                        ? i === plan.features.length - 1
+                          ? "text-primary-400 font-bold"
+                          : "text-gray-300"
+                        : "text-foreground-secondary"
+                    }`}
+                  >
+                    {i === plan.features.length - 1 && plan.dark ? (
+                      <Star className="w-5 h-5 text-primary-400 shrink-0" />
+                    ) : (
+                      <Check className="w-5 h-5 text-primary-500 shrink-0" />
+                    )}
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href={plan.href}
+                className={`w-full py-4 rounded-2xl font-bold text-center transition-colors block ${
+                  plan.dark
+                    ? "bg-white text-gray-900 hover:bg-gray-100"
+                    : plan.popular
+                      ? "bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-200 dark:shadow-primary-900/30"
+                      : "border border-border text-foreground hover:bg-background-secondary"
+                }`}
+              >
+                {plan.cta}
+              </Link>
             </div>
           ))}
-        </div>
-
-        {/* Money back guarantee */}
-        <div className="text-center mt-12">
-          <p className="text-sm text-foreground-secondary">
-            7일 무료 체험 후 결제 시작 · 언제든 취소 가능 · 취업 성공 시 환불 보장
-          </p>
         </div>
       </div>
     </section>

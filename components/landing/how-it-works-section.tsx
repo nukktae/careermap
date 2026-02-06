@@ -1,114 +1,102 @@
 "use client";
 
-import { Upload, Search, GraduationCap, Briefcase } from "lucide-react";
-
 const steps = [
   {
+    id: "step-1",
     number: "01",
-    icon: Upload,
     title: "이력서 업로드",
     description:
-      "PDF 또는 DOCX 형식의 이력서를 업로드하세요. AI가 30초 안에 분석을 완료합니다.",
-    highlight: "30초 소요",
+      "PDF 또는 DOCX 파일을 업로드하세요. AI가 30초 내에 당신의 경험을 분석합니다.",
   },
   {
+    id: "step-2",
     number: "02",
-    icon: Search,
     title: "매칭 결과 확인",
     description:
-      "내 프로필에 맞는 채용 공고를 확인하세요. 각 공고별 적합도 점수와 부족한 스킬을 한눈에 볼 수 있습니다.",
-    highlight: "AI 매칭",
+      "추천 공고 리스트와 함께 직무별 적합도 점수, 부족한 스킬을 한눈에 확인하세요.",
   },
   {
+    id: "step-3",
     number: "03",
-    icon: GraduationCap,
     title: "맞춤 준비 시작",
     description:
-      "목표 회사를 선택하면 이력서 최적화 가이드와 준비 팁을 받을 수 있습니다.",
-    highlight: "맞춤 플랜",
+      "목표 기업을 선택하면 AI가 최적화된 이력서 가이드와 면접 팁을 제공합니다.",
   },
   {
+    id: "step-4",
     number: "04",
-    icon: Briefcase,
     title: "자신있게 지원",
     description:
-      "준비가 완료되면 지원하고, 칸반 보드로 모든 지원 현황을 관리하세요. AI 인사이트로 더 나은 전략을 세울 수 있습니다.",
-    highlight: "취업 성공",
+      "칸반 보드로 지원 현황을 관리하고, AI 인사이트를 통해 다음 전략을 세우세요.",
   },
 ];
 
 export function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="py-20 lg:py-32 bg-background">
+    <section id="how-it-works" className="py-24 bg-background-secondary">
       <div className="container-app">
-        {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-success-badge text-success-600 dark:text-success-400 text-sm font-medium mb-4">
-            이용 방법
+        <div className="text-center mb-16">
+          <span className="inline-block px-4 py-1.5 bg-card text-primary-600 dark:text-primary-400 text-xs font-bold rounded-full mb-4 shadow-sm border border-primary-100 dark:border-primary-900">
+            WORKFLOW
           </span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4 text-balance">
-            10분 안에 취업 준비 로드맵 완성
+          <h2 className="text-4xl font-bold text-foreground mb-4">
+            이용 방법
           </h2>
-          <p className="text-lg text-foreground-secondary">
-            복잡한 설정 없이 바로 시작할 수 있습니다.
+          <p className="text-foreground-secondary">
+            단 4단계로 완성하는 스마트한 취업 준비 여정
           </p>
         </div>
 
-        {/* Steps */}
-        <div className="relative">
-          {/* Connection line - desktop (aligned with number+icon row) */}
-          <div className="hidden lg:block absolute top-[2.875rem] left-0 right-0 h-0.5 bg-gradient-to-r from-primary-200 via-success-200 to-warning-200 dark:from-primary-800 dark:via-success-800 dark:to-warning-800" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+          {/* Connecting line - desktop */}
+          <div
+            className="hidden lg:block absolute top-8 left-0 w-full h-0.5 bg-primary-100 dark:bg-primary-900 z-0"
+            style={{ top: "7rem" }}
+            aria-hidden
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
-            {steps.map((step, index) => (
-              <div key={step.number} className="relative">
-                {/* Step card */}
-                <div className="bg-card rounded-2xl p-6 border border-border h-full">
-                  {/* Number + icon in one compact row */}
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center font-bold text-base shrink-0">
-                      {step.number}
-                    </div>
-                    <div className="w-11 h-11 rounded-xl bg-background-secondary flex items-center justify-center shrink-0">
-                      <step.icon className="w-5 h-5 text-foreground-secondary" />
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <h3 className="text-xl font-semibold text-foreground mb-3">
+          {steps.map((step, index) => (
+            <div key={step.id} id={step.id} className="relative z-10">
+              <div className="text-center">
+                <div
+                  className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-8 text-xl font-bold shadow-xl ${
+                    index === 0
+                      ? "bg-primary-500 text-white shadow-primary-200 dark:shadow-primary-900/50"
+                      : "bg-card text-primary-600 dark:text-primary-400 border-4 border-primary-100 dark:border-primary-800"
+                  }`}
+                >
+                  {step.number}
+                </div>
+                <div className="bg-card p-8 rounded-3xl shadow-sm border border-border">
+                  <h4 className="font-bold text-lg text-foreground mb-3">
                     {step.title}
-                  </h3>
-                  <p className="text-foreground-secondary leading-relaxed mb-4">
+                  </h4>
+                  <p className="text-sm text-foreground-secondary leading-relaxed">
                     {step.description}
                   </p>
-
-                  {/* Highlight badge */}
-                  <span className="inline-block px-3 py-1 rounded-full bg-primary-badge text-primary-badge-text text-sm font-medium">
-                    {step.highlight}
-                  </span>
                 </div>
-
-                {/* Arrow - mobile/tablet */}
-                {index < steps.length - 1 && (
-                  <div className="flex justify-center my-4 lg:hidden">
-                    <svg
-                      className="w-6 h-6 text-foreground-muted"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                      />
-                    </svg>
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
+
+              {/* Arrow - mobile/tablet */}
+              {index < steps.length - 1 && (
+                <div className="flex justify-center my-4 lg:hidden" aria-hidden>
+                  <svg
+                    className="w-6 h-6 text-foreground-muted"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                    />
+                  </svg>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </section>

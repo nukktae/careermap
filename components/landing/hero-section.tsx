@@ -60,7 +60,7 @@ export function HeroSection() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="bg-background rounded-md px-4 py-1.5 text-sm text-foreground-muted text-center">
-                    careermap.kr/prepare/resume
+                    jobru.vercel.app/prepare/resume
                   </div>
                 </div>
               </div>

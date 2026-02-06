@@ -2,11 +2,18 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { AppIcon } from "@/components/ui/app-icon";
 import { SavedJobsProvider } from "@/lib/saved-jobs-context";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ChevronLeft, ChevronRight, User, LogOut } from "lucide-react";
 
 const SIDEBAR_COLLAPSED_KEY = "careermap-sidebar-collapsed";
 
@@ -18,14 +25,29 @@ const navItems = [
   { href: "/profile", label: "프로필", icon: "user" as const },
 ];
 
+function getInitials(user: { user_metadata?: { full_name?: string }; email?: string } | null): string {
+  if (!user) return "?";
+  const name = user.user_metadata?.full_name?.trim();
+  if (name) {
+    const parts = name.split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+  if (user.email) return user.email.slice(0, 2).toUpperCase();
+  return "?";
+}
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -222,11 +244,47 @@ export default function DashboardLayout({
           >
             <AppIcon name="setting" className="w-5 h-5" />
           </Link>
-          <div className="ml-2 w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold text-sm">
-            김
-          </div>
+          <button
+            type="button"
+            onClick={() => setUserMenuOpen(true)}
+            className="ml-2 w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold text-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            aria-label="계정 메뉴"
+          >
+            {getInitials(user)}
+          </button>
         </div>
       </header>
+
+      {/* User account modal */}
+      <Dialog open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>계정</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-1 py-2">
+            <Link
+              href="/profile"
+              onClick={() => setUserMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-foreground hover:bg-background-secondary transition-colors"
+            >
+              <User className="w-5 h-5 text-foreground-muted" />
+              <span>프로필 보기</span>
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                setUserMenuOpen(false);
+                await signOut();
+                router.push("/login");
+              }}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-foreground hover:bg-background-secondary transition-colors text-left w-full"
+            >
+              <LogOut className="w-5 h-5 text-foreground-muted" />
+              <span>로그아웃</span>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border flex items-center justify-around lg:hidden z-50 safe-bottom">

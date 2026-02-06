@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
-import { ChevronDown, ChevronUp, Target } from "lucide-react";
+import { ChevronDown, ChevronUp, Target, Lock } from "lucide-react";
 import { getJobs } from "@/lib/data/jobs";
 import { getInterviewPrep } from "@/lib/data/prepare";
 import {
@@ -96,6 +96,17 @@ function PrepareInterviewContent() {
           </SelectContent>
         </Select>
       </div>
+
+      {!data && (
+        <div className="rounded-2xl border border-border bg-card p-12 text-center">
+          <Lock className="mx-auto h-12 w-12 text-foreground-muted mb-4" />
+          <p className="text-foreground-secondary font-medium mb-1">프리미엄 전용</p>
+          <p className="text-sm text-foreground-muted mb-6">
+            질문 유형, 스토리 매핑, 회사 문화, 한국형 면접 포맷은 프리미엄에서 이용할 수 있습니다.
+          </p>
+          <Button>업그레이드</Button>
+        </div>
+      )}
 
       {data && (
         <div className="space-y-6">

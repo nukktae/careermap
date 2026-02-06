@@ -8,5 +8,6 @@ Run migrations in the Supabase Dashboard **in order**:
    - `migrations/20260207000001_initial_schema.sql` — tables, enums, trigger, RLS (required).
    - `migrations/20260207000002_indexes.sql` — optional indexes for applications and saved_jobs.
    - `migrations/20260207000003_profiles_updated_at_trigger.sql` — optional auto-update of `profiles.updated_at`.
+   - `migrations/20260207100000_jobs_and_match_scores.sql` — `jobs` (listings) and `user_job_match_scores` (match cache for dashboard).
 
 Or use the Supabase CLI from this directory: `supabase db push` (after linking the project).

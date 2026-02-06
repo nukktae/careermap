@@ -9,11 +9,11 @@ import { useSavedJobs } from "@/lib/saved-jobs-context";
 import { LINKAREER_ID_OFFSET } from "@/lib/data/linkareer";
 
 const prepareTabs = [
-  { href: "/prepare/skills", label: "스킬 갭" },
+  { href: "/prepare/skills", label: "스킬 갭 분석" },
   { href: "/prepare/resume", label: "이력서 최적화" },
   { href: "/prepare/preview", label: "이력서 미리보기" },
-  { href: "/prepare/cover-letter", label: "자소서" },
-  { href: "/prepare/interview", label: "면접 준비" },
+  { href: "/prepare/cover-letter", label: "자기소개서 생성" },
+  { href: "/prepare/interview", label: "AI 면접 대비" },
 ];
 
 interface JobLabel {
@@ -141,13 +141,25 @@ export function PrepareTabs() {
 
   if (!showTabs) return null;
 
+  const activeTab = prepareTabs.find(
+    (t) => pathname === t.href || pathname.startsWith(t.href + "?")
+  );
+  const breadcrumbLabel = activeTab?.label ?? "커리어 준비";
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-xs font-medium text-slate-400">
+        <Link href="/prepare" className="hover:text-slate-600 transition-colors">
+          커리어 준비
+        </Link>
+        <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
+        <span className="text-slate-900 font-medium">{breadcrumbLabel}</span>
+      </nav>
+
       {validJobId == null && savedJobIds.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground-muted">
-            저장한 채용에서 선택
-          </p>
+          <p className="text-sm font-medium text-slate-500">저장한 채용에서 선택</p>
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
             {savedJobIds.map((id) => {
               const labelData = savedLabels[id];
@@ -161,31 +173,26 @@ export function PrepareTabs() {
                 <Link
                   key={id}
                   href={`${pathname}?job=${id}`}
-                  className="shrink-0 rounded-xl border border-border bg-card px-4 py-3 hover:border-primary-300 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 transition-colors min-w-[200px] max-w-[280px]"
+                  className="shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-[#2463E9]/30 hover:bg-blue-50/50 transition-colors min-w-[200px] max-w-[280px]"
                 >
-                  <p className="font-medium text-foreground truncate text-sm">
-                    {label}
-                  </p>
-                  <p className="text-xs text-foreground-muted mt-0.5">
-                    이 채용으로 준비하기 →
-                  </p>
+                  <p className="font-medium text-slate-900 truncate text-sm">{label}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">이 채용으로 준비하기 →</p>
                 </Link>
               );
             })}
           </div>
         </div>
       )}
+
       {validJobId != null && (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-500/10">
-              <Building2 className="h-4 w-4 text-primary-500" />
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+          <div className="flex items-center gap-3 px-5 py-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+              <Building2 className="h-5 w-5 text-[#2463E9]" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-foreground-muted">
-                이 채용 준비 중
-              </p>
-              <p className="font-semibold text-foreground truncate">
+              <p className="text-xs font-medium text-slate-500">이 채용 준비 중</p>
+              <p className="font-semibold text-slate-900 truncate">
                 {jobLabel === "loading"
                   ? "불러오는 중…"
                   : jobLabel
@@ -195,7 +202,7 @@ export function PrepareTabs() {
             </div>
             <Link
               href={`/jobs/${validJobId}`}
-              className="shrink-0 inline-flex items-center gap-0.5 text-sm font-medium text-primary hover:underline"
+              className="shrink-0 inline-flex items-center gap-0.5 text-sm font-semibold text-[#2463E9] hover:underline"
             >
               채용 상세
               <ChevronRight className="h-4 w-4" />
@@ -203,7 +210,12 @@ export function PrepareTabs() {
           </div>
         </div>
       )}
-      <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-background-secondary border border-border w-full overflow-x-auto">
+
+      {/* Tab bar: underline active style */}
+      <nav
+        className="flex gap-8 md:gap-10 border-b border-slate-200 -mb-px overflow-x-auto pb-px"
+        aria-label="준비 탭"
+      >
         {prepareTabs.map((tab) => {
           const hrefWithJob = tab.href + query;
           const isActive =
@@ -212,17 +224,17 @@ export function PrepareTabs() {
             <Link
               key={tab.href}
               href={hrefWithJob}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+              className={`pb-4 text-base font-medium whitespace-nowrap transition-colors border-b-2 mt-px ${
                 isActive
-                  ? "bg-card text-foreground shadow-sm border border-border"
-                  : "text-foreground-secondary hover:text-foreground hover:bg-background-tertiary"
+                  ? "text-[#2463E9] border-[#2463E9] font-bold"
+                  : "text-slate-400 border-transparent hover:text-slate-600"
               }`}
             >
               {tab.label}
             </Link>
           );
         })}
-      </div>
+      </nav>
     </div>
   );
 }

@@ -1,10 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Eye, Download, FileJson } from "lucide-react";
+import { FileText, Eye, Download, FileJson, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useProfile } from "@/lib/hooks/use-profile";
 import { getResumeSectionsForDisplay } from "@/lib/data/profile";
 import { RESUME_TEMPLATE_ABOUT_ME } from "@/lib/data/prepare";
@@ -103,6 +110,7 @@ export default function EditResumePage() {
   const { profile, isLoading, updateProfile } = useProfile();
   const [sections, setSections] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState(false);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && profile) {
@@ -198,15 +206,44 @@ export default function EditResumePage() {
             섹션별로 내용을 편집하고 미리보기·PDF로 저장하세요.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="rounded-xl" onClick={handleLoadTemplate}>
-            <FileText className="w-4 h-4 mr-2" />
-            About Me 형식 불러오기
-          </Button>
-          <Button variant="outline" className="rounded-xl" onClick={handleLoadMyCv}>
-            <FileJson className="w-4 h-4 mr-2" />
-            mycv.json 불러오기
-          </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="rounded-xl">
+                불러오기
+                <ChevronDown className="w-4 h-4 ml-1.5 opacity-70" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>형식 선택</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="justify-start rounded-xl h-11"
+                  onClick={() => {
+                    handleLoadTemplate();
+                    setLoadDialogOpen(false);
+                  }}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  About Me 형식
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start rounded-xl h-11"
+                  onClick={() => {
+                    handleLoadMyCv();
+                    setLoadDialogOpen(false);
+                  }}
+                >
+                  <FileJson className="w-4 h-4 mr-2" />
+                  mycv.json
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button variant="outline" className="rounded-xl" onClick={handlePreview}>
             <Eye className="w-4 h-4 mr-2" />
             {preview ? "편집" : "미리보기"}

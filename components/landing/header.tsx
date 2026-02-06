@@ -46,19 +46,6 @@ export function Header() {
             <span className="text-xl font-bold text-foreground">잡자</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-foreground-secondary hover:text-foreground transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-3">
             <Button variant="ghost" asChild>

@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 
 const profileTabs = [
   { href: "/profile", label: "프로필" },
-  { href: "/profile/edit", label: "프로필 수정" },
   { href: "/profile/resume", label: "이력서" },
   { href: "/profile/preferences", label: "선호설정" },
 ];
