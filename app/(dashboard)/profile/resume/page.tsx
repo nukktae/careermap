@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getProfile, updateProfile, getResumeSectionsForDisplay } from "@/lib/data/profile";
+import { RESUME_TEMPLATE_ABOUT_ME } from "@/lib/data/prepare";
 
 const SECTION_KEYS = ["summary", "education", "experience", "projects", "skills"] as const;
 const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
@@ -45,6 +46,11 @@ export default function EditResumePage() {
 
   const handlePreview = () => {
     setPreview((p) => !p);
+  };
+
+  const handleLoadTemplate = () => {
+    if (typeof window !== "undefined" && !window.confirm("저장된 'About Me' 형식 템플릿으로 덮어쓸까요? (현재 내용은 유지되지 않아요)")) return;
+    setSections({ ...RESUME_TEMPLATE_ABOUT_ME.sections });
   };
 
   const handlePdfDownload = () => {
@@ -97,6 +103,10 @@ export default function EditResumePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="rounded-xl" onClick={handleLoadTemplate}>
+            <FileText className="w-4 h-4 mr-2" />
+            About Me 형식 불러오기
+          </Button>
           <Button variant="outline" className="rounded-xl" onClick={handlePreview}>
             <Eye className="w-4 h-4 mr-2" />
             {preview ? "편집" : "미리보기"}

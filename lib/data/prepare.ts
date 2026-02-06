@@ -157,26 +157,44 @@ const RESUME_OPTIMIZER_SAMPLES: { before: string; after: string; explanation: st
   },
 ];
 
+/**
+ * Saved resume template: "About Me" format and content (10년차 백엔드 개발자).
+ * 이력서 형태 및 내용을 그대로 저장하여 미리보기/템플릿 적용에 사용.
+ */
+export const RESUME_TEMPLATE_ABOUT_ME = {
+  /** Section key → label for display (About Me = summary) */
+  sectionLabels: { summary: "About Me", education: "Education", experience: "Experience", projects: "Projects", skills: "Skills" } as const,
+  /** Full resume sections in this person's format */
+  sections: {
+    summary: `Java & Spring / NodeJS & TypeScript, AWS 기반의 10년차 서버 백엔드 개발자로 누적 회원수 100만의 에듀테크, MAU 1,500만 & 일 주문 300만 커머스, 일 PV 2,000만 포탈 등의 서비스에서 백엔드 플랫폼 개발 및 AWS 인프라 구축 등을 해왔습니다. 개인이 하고 싶은 일 보다는 회사와 팀에 기여하는 것을 중시합니다.`,
+    education: "CS/관련 학과 졸업 (년도)",
+    experience:
+      "에듀테크 서비스 | 백엔드 개발 (N년) – 누적 회원 100만 규모 백엔드 플랫폼\n커머스 서비스 | 백엔드/인프라 (N년) – MAU 1,500만, 일 주문 300만\n포탈 서비스 | 백엔드 개발 (N년) – 일 PV 2,000만, AWS 인프라 구축",
+    projects: "백엔드 플랫폼 설계 및 구축, AWS 인프라 설계 및 운영",
+    skills: "Java, Spring, Node.js, TypeScript, AWS, Docker, REST API, SQL",
+  },
+  /** Single blob for preview (About Me 형태 그대로) */
+  fullText: `About Me
+Java & Spring / NodeJS & TypeScript, AWS 기반의 10년차 서버 백엔드 개발자로 누적 회원수 100만의 에듀테크, MAU 1,500만 & 일 주문 300만 커머스, 일 PV 2,000만 포탈 등의 서비스에서 백엔드 플랫폼 개발 및 AWS 인프라 구축 등을 해왔습니다. 개인이 하고 싶은 일 보다는 회사와 팀에 기여하는 것을 중시합니다.
+
+Education
+CS/관련 학과 졸업 (년도)
+
+Experience
+• 에듀테크 서비스 | 백엔드 개발 (N년) – 누적 회원 100만 규모 백엔드 플랫폼
+• 커머스 서비스 | 백엔드/인프라 (N년) – MAU 1,500만, 일 주문 300만
+• 포탈 서비스 | 백엔드 개발 (N년) – 일 PV 2,000만, AWS 인프라 구축
+
+Projects
+백엔드 플랫폼 설계 및 구축, AWS 인프라 설계 및 운영
+
+Skills
+Java, Spring, Node.js, TypeScript, AWS, Docker, REST API, SQL`,
+} as const;
+
 const RESUME_PREVIEW = {
-  original: `경력
-- React를 사용해서 웹 페이지를 만들었습니다.
-- 팀 프로젝트에서 백엔드 개발을 담당했습니다.
-
-학력
-서울대학교 컴퓨터공학과 (2019–2023)
-
-스킬
-React, JavaScript, Git`,
-
-  optimized: `경력
-- React와 TypeScript로 사용자 5,000명 규모의 대시보드를 개발하여 페이지 로드 시간 30% 단축
-- 3명 팀에서 REST API 설계 및 Node.js 백엔드 개발을 담당하여 2주 내 MVP 출시에 기여
-
-학력
-서울대학교 컴퓨터공학과 (2019–2023)
-
-스킬
-React, TypeScript, Node.js, Git, Docker`,
+  original: RESUME_TEMPLATE_ABOUT_ME.fullText,
+  optimized: RESUME_TEMPLATE_ABOUT_ME.fullText,
 };
 
 const COVER_LETTER_PROMPTS: CoverLetterPrompt[] = [
@@ -285,6 +303,108 @@ const INTERVIEW_PREP: Record<number, InterviewPrepData> = {
 
 export function getSkillGapSkills(): SkillGapSkill[] {
   return [...SKILL_GAP_SKILLS].sort((a, b) => b.impactPercent - a.impactPercent);
+}
+
+/** Job-contextual skill gap: requirements from the job vs what the user has. */
+export interface SkillGapContext {
+  company: string;
+  jobTitle: string;
+  /** 자격 요건 (full lines from job) */
+  requirements: string[];
+  /** 우대 사항 (full lines from job) */
+  preferred: string[];
+  /** Skills user has that match this job */
+  matched: string[];
+  /** Skills to develop for this job */
+  missing: string[];
+}
+
+/**
+ * Build skill gap context from a mock JobDetail (has matchedSkills / missingSkills).
+ */
+export function getSkillGapFromJobDetail(job: {
+  company: string;
+  title: string;
+  requirements: string[];
+  preferred: string[];
+  matchedSkills: string[];
+  missingSkills: string[];
+}): SkillGapContext {
+  return {
+    company: job.company,
+    jobTitle: job.title,
+    requirements: job.requirements ?? [],
+    preferred: job.preferred ?? [],
+    matched: job.matchedSkills ?? [],
+    missing: job.missingSkills ?? [],
+  };
+}
+
+/** Normalize skill string for matching (lowercase, trim). */
+export function normalizeSkillToken(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Extract skill-like tokens from requirement/preferred text (lines split by newline, then comma/및).
+ * Used for Linkareer or when we only have raw text.
+ */
+export function extractSkillLikeTokens(lines: string[]): string[] {
+  const seen = new Set<string>();
+  for (const line of lines) {
+    const parts = line.split(/[,،、및\n]+/).map((p) => p.trim()).filter((p) => p.length > 1);
+    for (const p of parts) {
+      const n = normalizeSkillToken(p);
+      if (n.length > 0) seen.add(n);
+    }
+  }
+  return Array.from(seen);
+}
+
+/**
+ * Check if a requirement line is "covered" by profile skills (any token in the line matches).
+ */
+function lineMatchesProfile(line: string, profileSkills: string[]): boolean {
+  const tokens = line.split(/[,،、및\n]+/).map((p) => normalizeSkillToken(p.trim())).filter((p) => p.length > 1);
+  const userNorm = new Set(profileSkills.map(normalizeSkillToken));
+  return tokens.some((t) => Array.from(userNorm).some((u) => u.includes(t) || t.includes(u)));
+}
+
+/**
+ * Classify requirement/preferred lines into matched (user has) vs missing (gap).
+ */
+export function computeMatchedMissingLines(
+  lines: string[],
+  profileSkills: string[]
+): { matched: string[]; missing: string[] } {
+  const matched: string[] = [];
+  const missing: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (lineMatchesProfile(trimmed, profileSkills)) matched.push(trimmed);
+    else missing.push(trimmed);
+  }
+  return { matched, missing };
+}
+
+/**
+ * Compute matched vs missing skills: requiredTokens vs profileSkills (normalized).
+ */
+export function computeMatchedMissing(
+  requiredTokens: string[],
+  profileSkills: string[]
+): { matched: string[]; missing: string[] } {
+  const userNorm = new Set(profileSkills.map(normalizeSkillToken));
+  const matched: string[] = [];
+  const missing: string[] = [];
+  for (const token of requiredTokens) {
+    const n = normalizeSkillToken(token);
+    const found = Array.from(userNorm).some((u) => u.includes(n) || n.includes(u));
+    if (found) matched.push(token);
+    else missing.push(token);
+  }
+  return { matched, missing };
 }
 
 export function getLearningPlan(jobId: number): LearningPlan | undefined {
