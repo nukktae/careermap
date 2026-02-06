@@ -116,7 +116,9 @@
   --color-card-foreground: var(--card-foreground);
   --color-foreground-hover: var(--foreground-hover);
 
-  /* Primary */
+  /* Primary (버튼/슬라이더 등 메인 액센트 - primary-500과 동일) */
+  --color-primary: var(--primary-500);
+  --color-primary-foreground: #ffffff;
   --color-primary-50: var(--primary-50);
   --color-primary-100: var(--primary-100);
   --color-primary-200: var(--primary-200);
