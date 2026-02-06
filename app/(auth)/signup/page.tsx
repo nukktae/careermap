@@ -57,7 +57,7 @@ export default function SignUpPage() {
           <div className="space-y-4">
             {[
               "AI가 분석하는 스킬 갭",
-              "맞춤형 학습 플랜",
+              "이력서 최적화 & 자소서",
               "지원 현황 추적 & 인사이트",
             ].map((feature, index) => (
               <div key={index} className="flex items-center gap-3 text-white">

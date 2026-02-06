@@ -143,12 +143,6 @@ export default function DashboardLayout({
           <span className="text-lg font-bold text-foreground">잡자</span>
         </Link>
         <div className="flex items-center gap-2">
-          <div
-            className="p-2 text-foreground-muted rounded-lg cursor-default"
-            aria-hidden
-          >
-            <AppIcon name="notification" className="w-5 h-5" />
-          </div>
           <button
             className="p-2 text-foreground-secondary hover:text-foreground"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

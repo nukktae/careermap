@@ -1,10 +1,9 @@
 /**
  * Centralized Prepare module types and mock data.
- * Used by Skill Gap, Learning Plan, Resume Optimizer/Preview, 자소서, Interview Prep.
+ * Used by Skill Gap, Resume Optimizer/Preview, 자소서, Interview Prep.
  */
 
 export type SkillPriority = "high" | "medium" | "low";
-export type LearningTaskType = "learn" | "practice" | "resume";
 export type HighlightType = "keyword" | "verb" | "quantity";
 
 export interface SkillGapSkill {
@@ -15,29 +14,6 @@ export interface SkillGapSkill {
   learningDaysMin: number;
   learningDaysMax: number;
   priority: SkillPriority;
-}
-
-export interface LearningTask {
-  id: string;
-  label: string;
-  estimatedHours: number;
-  resourceUrl?: string;
-  resourceLabel?: string;
-  type: LearningTaskType;
-}
-
-export interface LearningWeek {
-  title: string;
-  tasks: LearningTask[];
-}
-
-export interface LearningPlan {
-  jobId: number;
-  jobTitle: string;
-  company: string;
-  currentMatch: number;
-  targetMatch: number;
-  weeks: LearningWeek[];
 }
 
 export interface ResumeBulletHighlight {
@@ -83,58 +59,6 @@ const SKILL_GAP_SKILLS: SkillGapSkill[] = [
   { id: "kotlin", name: "Kotlin", impactPercent: 6, demandCount: 5, learningDaysMin: 10, learningDaysMax: 21, priority: "low" },
   { id: "spring", name: "Spring", impactPercent: 9, demandCount: 11, learningDaysMin: 14, learningDaysMax: 28, priority: "medium" },
 ];
-
-const LEARNING_PLANS: Record<number, LearningPlan> = {
-  1: {
-    jobId: 1,
-    jobTitle: "프론트엔드 개발자",
-    company: "네이버",
-    currentMatch: 72,
-    targetMatch: 85,
-    weeks: [
-      {
-        title: "Week 1: Docker 기초",
-        tasks: [
-          { id: "w1t1", label: "Docker 공식 튜토리얼 완료", estimatedHours: 4, resourceUrl: "https://docs.docker.com/get-started/", resourceLabel: "Docker 공식 문서", type: "learn" },
-          { id: "w1t2", label: "기존 프로젝트에 Dockerfile 작성", estimatedHours: 2, type: "practice" },
-          { id: "w1t3", label: "이력서에 Docker 경험 추가", estimatedHours: 1, type: "resume" },
-        ],
-      },
-      {
-        title: "Week 2: AWS 기초",
-        tasks: [
-          { id: "w2t1", label: "AWS EC2 기초 강의 시청 (YouTube)", estimatedHours: 3, resourceUrl: "https://www.youtube.com/", resourceLabel: "YouTube – AWS EC2", type: "learn" },
-          { id: "w2t2", label: "프로젝트를 EC2에 배포해 보기", estimatedHours: 4, type: "practice" },
-          { id: "w2t3", label: "이력서에 배포 경험 반영", estimatedHours: 1, type: "resume" },
-        ],
-      },
-    ],
-  },
-  2: {
-    jobId: 2,
-    jobTitle: "웹 개발자",
-    company: "카카오",
-    currentMatch: 68,
-    targetMatch: 80,
-    weeks: [
-      {
-        title: "Week 1: Kubernetes & CI/CD",
-        tasks: [
-          { id: "k1t1", label: "Kubernetes 기초 강의 (Udemy)", estimatedHours: 5, resourceLabel: "Udemy – Kubernetes", type: "learn" },
-          { id: "k1t2", label: "GitHub Actions로 CI 파이프라인 구성", estimatedHours: 3, type: "practice" },
-          { id: "k1t3", label: "이력서에 CI/CD 경험 추가", estimatedHours: 1, type: "resume" },
-        ],
-      },
-      {
-        title: "Week 2: 실습 정리",
-        tasks: [
-          { id: "k2t1", label: "개인 프로젝트에 K8s 배포 연습", estimatedHours: 6, type: "practice" },
-          { id: "k2t2", label: "포트폴리오에 배포 링크 추가", estimatedHours: 2, type: "resume" },
-        ],
-      },
-    ],
-  },
-};
 
 const RESUME_OPTIMIZER_SAMPLES: { before: string; after: string; explanation: string[] }[] = [
   {
@@ -407,14 +331,6 @@ export function computeMatchedMissing(
   return { matched, missing };
 }
 
-export function getLearningPlan(jobId: number): LearningPlan | undefined {
-  const plan = LEARNING_PLANS[jobId];
-  if (plan) return { ...plan, weeks: plan.weeks.map((w) => ({ ...w, tasks: [...w.tasks] })) };
-  const fallback = LEARNING_PLANS[1];
-  if (fallback) return { ...fallback, jobId, jobTitle: `채용 #${jobId}`, company: "해당 회사" };
-  return undefined;
-}
-
 export function getResumeOptimizerDefaults(): typeof RESUME_OPTIMIZER_SAMPLES {
   return RESUME_OPTIMIZER_SAMPLES;
 }
@@ -457,25 +373,3 @@ export function getInterviewPrep(jobId: number): InterviewPrepData | undefined {
   return INTERVIEW_PREP[jobId] ? { ...INTERVIEW_PREP[jobId]! } : INTERVIEW_PREP[1];
 }
 
-export const PLAN_STORAGE_KEY_PREFIX = "careermap-plan-";
-
-export function getCompletedTaskIds(jobId: number): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(`${PLAN_STORAGE_KEY_PREFIX}${jobId}`);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as string[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-export function setCompletedTaskIds(jobId: number, taskIds: string[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(`${PLAN_STORAGE_KEY_PREFIX}${jobId}`, JSON.stringify(taskIds));
-  } catch {
-    // ignore
-  }
-}

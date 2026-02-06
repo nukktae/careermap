@@ -26,7 +26,7 @@ const steps = [
   {
     icon: TrendingUp,
     title: "준비 시작",
-    description: "맞춤형 학습 플랜으로 경쟁력을 높이세요.",
+    description: "스킬 갭과 이력서 최적화로 경쟁력을 높이세요.",
   },
 ];
 

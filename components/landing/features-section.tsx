@@ -1,6 +1,6 @@
 "use client";
 
-import { Target, BookOpen, BarChart3, FileText, Brain, Users } from "lucide-react";
+import { Target, BarChart3, FileText, Brain, Users } from "lucide-react";
 
 const features = [
   {
@@ -16,13 +16,6 @@ const features = [
     description:
       "목표 회사에서 요구하는 기술과 내가 가진 기술의 차이를 명확하게 보여주고, 무엇을 준비해야 하는지 알려드립니다.",
     color: "success",
-  },
-  {
-    icon: BookOpen,
-    title: "맞춤 학습 플랜",
-    description:
-      "2-4주 단위의 체계적인 학습 계획을 제공합니다. 우선순위가 높은 스킬부터 효율적으로 준비하세요.",
-    color: "warning",
   },
   {
     icon: FileText,

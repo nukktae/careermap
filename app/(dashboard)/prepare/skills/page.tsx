@@ -338,11 +338,6 @@ function PrepareSkillsContent() {
                   </span>
                 ))}
               </div>
-              <Button asChild size="sm" className="mt-3">
-                <Link href={`/prepare/plan?job=${validJobId}`}>
-                  학습 플랜 만들기
-                </Link>
-              </Button>
             </div>
           )}
         </div>
@@ -350,12 +345,9 @@ function PrepareSkillsContent() {
 
       {!hasGap && (
         <div className="rounded-2xl border border-border bg-card p-6 text-center">
-          <p className="text-foreground-secondary mb-4">
+          <p className="text-foreground-secondary">
             이 채용의 요건을 프로필과 비교한 결과입니다. 요건이 없거나 분석 중이에요.
           </p>
-          <Button asChild variant="outline">
-            <Link href={`/prepare/plan?job=${validJobId}`}>학습 플랜 만들기</Link>
-          </Button>
         </div>
       )}
     </div>

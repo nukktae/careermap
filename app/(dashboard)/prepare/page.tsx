@@ -48,14 +48,6 @@ const tools = [
     locked: true,
   },
   {
-    href: "/prepare/plan",
-    icon: "task" as const,
-    title: "학습 플랜",
-    description: "채용별 2~4주 액션 플랜으로 스킬을 채우고 매칭을 올리세요.",
-    premium: true,
-    locked: true,
-  },
-  {
     href: "/prepare/interview",
     icon: "message-question" as const,
     title: "프리미엄 면접 준비",
@@ -73,7 +65,7 @@ export default function PreparePage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground mb-1">준비</h1>
         <p className="text-foreground-secondary">
-          스킬 갭, 학습 플랜, 이력서·자소서·면접까지 한곳에서 준비하세요.
+          스킬 갭, 이력서·자소서·면접까지 한곳에서 준비하세요.
         </p>
       </div>
 
@@ -101,7 +93,7 @@ export default function PreparePage() {
             </div>
             <DialogDescription className="text-left">
               이 기능은 구독 회원만 이용할 수 있어요. 구독하면 자소서 가이드,
-              학습 플랜, 면접 준비를 무제한으로 사용할 수 있습니다.
+              면접 준비를 무제한으로 사용할 수 있습니다.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">

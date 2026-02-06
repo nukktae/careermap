@@ -93,7 +93,7 @@ export default function TrackInsightsPage() {
           <AlertCircle className="w-5 h-5 text-warning-500" />
           자주 나온 탈락 사유
         </h2>
-        <ul className="space-y-2 mb-4">
+        <ul className="space-y-2">
           {insights!.rejectionReasons.map((reason, i) => (
             <li
               key={i}
@@ -104,9 +104,6 @@ export default function TrackInsightsPage() {
             </li>
           ))}
         </ul>
-        <Button asChild variant="outline" size="sm" className="rounded-xl">
-          <Link href="/prepare/plan">학습 플랜 만들기</Link>
-        </Button>
       </section>
 
       {/* C. Application Speed */}

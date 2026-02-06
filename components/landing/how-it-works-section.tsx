@@ -24,7 +24,7 @@ const steps = [
     icon: GraduationCap,
     title: "맞춤 준비 시작",
     description:
-      "목표 회사를 선택하면 2-4주 학습 플랜과 이력서 최적화 가이드를 받을 수 있습니다.",
+      "목표 회사를 선택하면 이력서 최적화 가이드와 준비 팁을 받을 수 있습니다.",
     highlight: "맞춤 플랜",
   },
   {
