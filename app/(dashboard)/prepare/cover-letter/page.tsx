@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function PrepareCoverLetterPage() {
+function PrepareCoverLetterContent() {
   const searchParams = useSearchParams();
   const jobs = getJobs();
   const jobParam = searchParams.get("job");
@@ -158,5 +158,13 @@ export default function PrepareCoverLetterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PrepareCoverLetterPage() {
+  return (
+    <Suspense fallback={<div className="space-y-6 h-64 animate-pulse rounded-lg bg-background-secondary" />}>
+      <PrepareCoverLetterContent />
+    </Suspense>
   );
 }

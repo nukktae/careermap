@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +24,7 @@ const LANGUAGE_OPTIONS = [
   { value: "ko-casual", label: "한국어 반말" },
 ];
 
-export default function PrepareResumePage() {
+function PrepareResumeContent() {
   const searchParams = useSearchParams();
   const jobsFromData = getJobs();
   const jobParam = searchParams.get("job");
@@ -59,6 +59,14 @@ export default function PrepareResumePage() {
     responsibilities: [],
     requirements: [],
     preferred: [],
+    benefits: [],
+    deadline: "",
+    matchBreakdown: {
+      skills: { score: 0, total: 0, matched: [], missing: [] },
+      experience: { score: 0, total: 0, note: "" },
+      education: { score: 0, total: 0, note: "" },
+      projects: { score: 0, total: 0, note: "" },
+    },
   };
 
   const jobs: JobDetail[] =
@@ -239,5 +247,13 @@ export default function PrepareResumePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PrepareResumePage() {
+  return (
+    <Suspense fallback={<div className="space-y-6 h-64 animate-pulse rounded-lg bg-background-secondary" />}>
+      <PrepareResumeContent />
+    </Suspense>
   );
 }

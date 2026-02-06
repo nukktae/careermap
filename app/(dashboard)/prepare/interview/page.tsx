@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function PrepareInterviewPage() {
+function PrepareInterviewContent() {
   const searchParams = useSearchParams();
   const jobs = getJobs();
   const jobParam = searchParams.get("job");
@@ -165,5 +165,13 @@ export default function PrepareInterviewPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PrepareInterviewPage() {
+  return (
+    <Suspense fallback={<div className="space-y-6 h-64 animate-pulse rounded-lg bg-background-secondary" />}>
+      <PrepareInterviewContent />
+    </Suspense>
   );
 }
