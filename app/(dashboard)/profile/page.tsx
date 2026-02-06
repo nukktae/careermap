@@ -89,11 +89,11 @@ export default function ProfilePage() {
       {/* Photo */}
       <section className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-6">
-          <div className="relative group">
+          <div className="group">
             <button
               type="button"
               onClick={handlePhotoClick}
-              className="shrink-0 w-24 h-24 rounded-full bg-background-secondary flex items-center justify-center text-2xl font-bold text-foreground-muted hover:bg-background-tertiary transition-colors overflow-hidden border border-border"
+              className="relative shrink-0 w-24 h-24 rounded-full bg-background-secondary flex items-center justify-center text-2xl font-bold text-foreground-muted hover:bg-background-tertiary transition-colors overflow-hidden border border-border"
             >
               {profile.photoUrl ? (
                 <img src={profile.photoUrl} alt="" className="w-full h-full object-cover" />
@@ -101,7 +101,7 @@ export default function ProfilePage() {
                 getInitials(profile.name)
               )}
               
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 w-full h-full rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </button>
