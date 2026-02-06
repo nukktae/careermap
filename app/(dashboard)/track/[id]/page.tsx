@@ -209,7 +209,7 @@ export default function ApplicationDetailPage() {
                     <h1 className="text-2xl font-bold text-foreground">
                       {job?.title ?? "—"}
                     </h1>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary-50 text-primary-600 border border-primary-100 dark:bg-primary-800/25 dark:border-primary-700/60 dark:text-primary-300">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary-50 text-primary-600 border border-primary-100 dark:bg-primary-600/20 dark:border-primary-500/40 dark:text-primary-300">
                       매칭 점수 {job?.match ?? 0}%
                     </span>
                   </div>
