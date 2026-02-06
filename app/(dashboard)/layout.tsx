@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
 import { SavedJobsProvider } from "@/lib/saved-jobs-context";
+import { NotificationModal } from "@/components/notifications/notification-modal";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SIDEBAR_COLLAPSED_KEY = "careermap-sidebar-collapsed";
@@ -26,6 +27,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -66,22 +68,16 @@ export default function DashboardLayout({
             href="/dashboard"
             className={`flex items-center gap-2 min-w-0 ${sidebarCollapsed ? "justify-center w-full" : "px-3"}`}
           >
-            <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center shrink-0">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="w-5 h-5 text-white"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-            </div>
+            <Image
+              src="/assets/logos/logojob.png"
+              alt="잡자"
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-lg object-contain shrink-0"
+            />
             {!sidebarCollapsed && (
               <span className="text-xl font-bold text-foreground truncate">
-                CareerMap
+                잡자
               </span>
             )}
           </Link>
@@ -114,35 +110,6 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {/* Upgrade banner (full when expanded, icon when collapsed) */}
-        <div className={`shrink-0 border-t border-border ${sidebarCollapsed ? "p-2" : "p-4"}`}>
-          {sidebarCollapsed ? (
-            <Link
-              href="/settings/billing"
-              title="프리미엄"
-              className="flex justify-center p-2 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white hover:opacity-90 transition-opacity"
-            >
-              <AppIcon name="crown" className="w-5 h-5 text-white" />
-            </Link>
-          ) : (
-            <div className="p-4 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white">
-              <div className="flex items-center gap-2 mb-2">
-                <AppIcon name="crown" className="w-5 h-5 text-white" />
-                <span className="font-semibold">프리미엄</span>
-              </div>
-              <p className="text-sm text-white/80 mb-3">
-                무제한 기능을 사용해 보세요
-              </p>
-              <Button
-                size="sm"
-                className="w-full bg-white text-primary-700 hover:bg-white/90"
-              >
-                업그레이드
-              </Button>
-            </div>
-          )}
-        </div>
-
         {/* Collapse toggle */}
         <div className="shrink-0 p-2 border-t border-border">
           <button
@@ -168,23 +135,22 @@ export default function DashboardLayout({
       {/* Mobile Header */}
       <header className="fixed top-0 left-0 right-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 lg:hidden z-50">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="w-5 h-5 text-white"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <span className="text-lg font-bold text-foreground">CareerMap</span>
+          <Image
+            src="/assets/logos/logojob.png"
+            alt="잡자"
+            width={32}
+            height={32}
+            className="w-8 h-8 rounded-lg object-contain"
+          />
+          <span className="text-lg font-bold text-foreground">잡자</span>
         </Link>
         <div className="flex items-center gap-2">
-          <button className="p-2 text-foreground-secondary hover:text-foreground">
+          <button
+            type="button"
+            onClick={() => setNotificationOpen(true)}
+            className="p-2 text-foreground-secondary hover:text-foreground rounded-lg hover:bg-background-secondary"
+            aria-label="알림"
+          >
             <AppIcon name="notification" className="w-5 h-5" />
           </button>
           <button
@@ -260,7 +226,12 @@ export default function DashboardLayout({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="p-2 text-foreground-secondary hover:text-foreground rounded-lg hover:bg-background-secondary relative">
+          <button
+            type="button"
+            onClick={() => setNotificationOpen(true)}
+            className="p-2 text-foreground-secondary hover:text-foreground rounded-lg hover:bg-background-secondary relative"
+            aria-label="알림"
+          >
             <AppIcon name="notification" className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-error-500 rounded-full" />
           </button>
@@ -299,6 +270,8 @@ export default function DashboardLayout({
           );
         })}
       </nav>
+
+      <NotificationModal open={notificationOpen} onOpenChange={setNotificationOpen} />
 
       {/* Main Content */}
       <main

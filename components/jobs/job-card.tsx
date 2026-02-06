@@ -46,8 +46,16 @@ export function JobCard({ job, isSaved, onToggleSave, href }: JobCardProps) {
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-background-secondary flex items-center justify-center text-foreground font-bold text-lg group-hover:bg-primary-50 dark:group-hover:bg-primary-950/30 transition-colors">
-            {job.logo}
+          <div className="w-12 h-12 rounded-xl bg-background-secondary flex items-center justify-center text-foreground font-bold text-lg overflow-hidden group-hover:bg-primary-50 dark:group-hover:bg-primary-950/30 transition-colors">
+            {job.logoUrl ? (
+              <img
+                src={job.logoUrl}
+                alt=""
+                className="object-contain w-full h-full"
+              />
+            ) : (
+              job.logo
+            )}
           </div>
           <div>
             <h3 className="font-semibold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">

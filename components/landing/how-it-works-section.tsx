@@ -43,7 +43,7 @@ export function HowItWorksSection() {
       <div className="container-app">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-300 text-sm font-medium mb-4">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-success-badge text-success-600 dark:text-success-400 text-sm font-medium mb-4">
             이용 방법
           </span>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4 text-balance">
@@ -56,22 +56,22 @@ export function HowItWorksSection() {
 
         {/* Steps */}
         <div className="relative">
-          {/* Connection line - desktop */}
-          <div className="hidden lg:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-200 via-success-200 to-warning-200 dark:from-primary-800 dark:via-success-800 dark:to-warning-800" />
+          {/* Connection line - desktop (aligned with number+icon row) */}
+          <div className="hidden lg:block absolute top-[2.875rem] left-0 right-0 h-0.5 bg-gradient-to-r from-primary-200 via-success-200 to-warning-200 dark:from-primary-800 dark:via-success-800 dark:to-warning-800" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
             {steps.map((step, index) => (
               <div key={step.number} className="relative">
                 {/* Step card */}
                 <div className="bg-card rounded-2xl p-6 border border-border h-full">
-                  {/* Number badge */}
-                  <div className="w-12 h-12 rounded-xl bg-primary-500 text-white flex items-center justify-center font-bold text-lg mb-5 relative z-10">
-                    {step.number}
-                  </div>
-
-                  {/* Icon */}
-                  <div className="w-14 h-14 rounded-xl bg-background-secondary flex items-center justify-center mb-5">
-                    <step.icon className="w-7 h-7 text-foreground-secondary" />
+                  {/* Number + icon in one compact row */}
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center font-bold text-base shrink-0">
+                      {step.number}
+                    </div>
+                    <div className="w-11 h-11 rounded-xl bg-background-secondary flex items-center justify-center shrink-0">
+                      <step.icon className="w-5 h-5 text-foreground-secondary" />
+                    </div>
                   </div>
 
                   {/* Content */}
@@ -83,7 +83,7 @@ export function HowItWorksSection() {
                   </p>
 
                   {/* Highlight badge */}
-                  <span className="inline-block px-3 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium">
+                  <span className="inline-block px-3 py-1 rounded-full bg-primary-badge text-primary-badge-text text-sm font-medium">
                     {step.highlight}
                   </span>
                 </div>

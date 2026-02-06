@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const footerLinks = {
   product: {
@@ -6,7 +7,6 @@ const footerLinks = {
     links: [
       { label: "기능", href: "#features" },
       { label: "요금제", href: "#pricing" },
-      { label: "후기", href: "#testimonials" },
       { label: "업데이트", href: "/updates" },
     ],
   },
@@ -47,20 +47,14 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="w-5 h-5 text-white"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                  <path d="M2 17l10 5 10-5" />
-                  <path d="M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <span className="text-xl font-bold text-foreground">CareerMap</span>
+              <Image
+                src="/assets/logos/logojob.png"
+                alt="잡자"
+                width={32}
+                height={32}
+                className="w-8 h-8 rounded-lg object-contain"
+              />
+              <span className="text-xl font-bold text-foreground">잡자</span>
             </Link>
             <p className="text-sm text-foreground-secondary mb-4">
               AI 기반 취업 준비 플랫폼
@@ -122,7 +116,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-foreground-muted">
-            © 2026 CareerMap. All rights reserved.
+            © 2026 잡자. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm text-foreground-muted">
             <span>대한민국에서 만들었습니다</span>

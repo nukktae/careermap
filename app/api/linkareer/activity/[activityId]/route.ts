@@ -18,6 +18,33 @@ function extractJobPostingLdJson(html: string): object | null {
   return null;
 }
 
+/** Extract detail body image URL (se2editor poster), not the logo. */
+function extractDetailImageUrl(html: string): string | null {
+  const match = html.match(
+    /https:\/\/media-cdn\.linkareer\.com\/+se2editor\/image\/\d+/
+  );
+  return match ? match[0] : null;
+}
+
+/** Optional: extract 기업형태 from HTML if present (e.g. "대기업", "공공기관/공기업"). */
+function extractCompanyType(html: string): string | null {
+  const patterns = [
+    /기업형태\s*([^\s<]+(?:\/[^\s<]+)?)/,
+    /(공공기관\/공기업|대기업|중소기업|스타트업|외국계|공기업)/,
+  ];
+  for (const re of patterns) {
+    const m = html.match(re);
+    if (m?.[1]) return m[1].trim();
+  }
+  return null;
+}
+
+/** Optional: extract 모집직무 from HTML or leave to description parse on frontend. */
+function extractRecruitCategory(html: string): string | null {
+  const m = html.match(/모집직무\s*([^\n<]+)/);
+  return m?.[1]?.trim() ?? null;
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ activityId: string }> }
@@ -63,9 +90,16 @@ export async function GET(
     );
   }
 
+  const detailImageUrl = extractDetailImageUrl(html);
+  const companyType = extractCompanyType(html);
+  const recruitCategory = extractRecruitCategory(html);
+
   return NextResponse.json({
     activityId,
     sourceUrl: url,
     jobPosting,
+    ...(detailImageUrl != null && { detailImageUrl }),
+    ...(companyType != null && companyType !== "" && { companyType }),
+    ...(recruitCategory != null && recruitCategory !== "" && { recruitCategory }),
   });
 }

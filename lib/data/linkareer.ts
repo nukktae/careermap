@@ -52,6 +52,7 @@ export function mapLinkareerNodeToJob(node: LinkareerActivityNode): Job {
     match: 0,
     badge: "stretch",
     logo: (node.organizationName ?? "L").charAt(0),
+    logoUrl: node.logoImage?.url,
     matchedSkills: [],
     missingSkills: categoryNames,
     salary: "—",

@@ -4,14 +4,21 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
-  Upload,
   FileText,
-  CheckCircle,
   AlertCircle,
   X,
   Sparkles,
   Lightbulb,
+  FileEdit,
 } from "lucide-react";
+
+const ACCEPT =
+  ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const MAX_MB = 5;
+const validTypes = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
 
 const tips = [
   "경험을 구체적인 수치로 표현하면 면접관에게 더 강한 인상을 줄 수 있어요.",
@@ -21,73 +28,177 @@ const tips = [
   "최신 경험일수록 더 자세하게 작성하는 것이 좋아요.",
 ];
 
+type UploadType = "resume" | "coverLetter";
+
+function validateFile(file: File): string | null {
+  if (!validTypes.includes(file.type)) return "PDF 또는 DOCX만 업로드할 수 있어요.";
+  if (file.size > MAX_MB * 1024 * 1024) return `파일 크기는 ${MAX_MB}MB 이하여야 해요.`;
+  return null;
+}
+
+interface UploadZoneProps {
+  type: UploadType;
+  label: string;
+  required: boolean;
+  file: File | null;
+  isDragging: boolean;
+  onDragOver: (e: React.DragEvent, type: UploadType) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent, type: UploadType) => void;
+  onFileSelect: (type: UploadType, file: File) => void;
+  onRemove: (type: UploadType) => void;
+  accept: string;
+  inputId: string;
+}
+
+function UploadZone({
+  type,
+  label,
+  required,
+  file,
+  isDragging,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onFileSelect,
+  onRemove,
+  accept,
+  inputId,
+}: UploadZoneProps) {
+  const Icon = type === "resume" ? FileText : FileEdit;
+  return (
+    <div
+      className={`relative border-2 border-dashed rounded-xl p-6 transition-all min-h-[180px] flex flex-col ${
+        isDragging
+          ? "border-primary-500 bg-primary-50 dark:bg-primary-950/20"
+          : file
+            ? "border-success-500 bg-success-50 dark:bg-success-950/20"
+            : "border-border hover:border-primary-300 hover:bg-[#fafafa] dark:hover:bg-background-secondary"
+      }`}
+      onDragOver={(e) => onDragOver(e, type)}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => onDrop(e, type)}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-sm font-semibold text-foreground">{label}</span>
+        {required && (
+          <span className="text-xs text-error-500 font-medium">필수</span>
+        )}
+        {!required && (
+          <span className="text-xs text-foreground-muted">선택</span>
+        )}
+      </div>
+      {!file ? (
+        <label
+          htmlFor={inputId}
+          className="flex-1 flex flex-col items-center justify-center cursor-pointer text-center"
+        >
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-primary-500">
+            <Icon className="w-6 h-6" />
+          </div>
+          <p className="text-sm font-medium text-foreground mb-1">
+            드래그하거나 클릭
+          </p>
+          <p className="text-xs text-foreground-muted">PDF, DOCX (최대 {MAX_MB}MB)</p>
+          <input
+            type="file"
+            accept={accept}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onFileSelect(type, f);
+              e.target.value = "";
+            }}
+            className="hidden"
+            id={inputId}
+          />
+        </label>
+      ) : (
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-success-100 dark:bg-success-900/30 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-success-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">
+              {file.name}
+            </p>
+            <p className="text-xs text-foreground-muted">
+              {(file.size / 1024 / 1024).toFixed(2)} MB
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onRemove(type)}
+            className="p-1.5 text-foreground-muted hover:text-foreground rounded-lg hover:bg-background-secondary"
+            aria-label={`${label} 제거`}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ResumeUploadPage() {
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
+  const [draggingOver, setDraggingOver] = useState<UploadType | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentTip, setCurrentTip] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const setFile = useCallback((type: UploadType, file: File | null) => {
+    if (type === "resume") setResumeFile(file);
+    else setCoverLetterFile(file);
+    setError(null);
+  }, []);
+
+  const handleFileSelect = useCallback(
+    (type: UploadType, selectedFile: File) => {
+      const err = validateFile(selectedFile);
+      if (err) {
+        setError(err);
+        return;
+      }
+      setFile(type, selectedFile);
+    },
+    [setFile]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent, type: UploadType) => {
     e.preventDefault();
-    setIsDragging(true);
+    e.stopPropagation();
+    setDraggingOver(type);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
+    setDraggingOver(null);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const droppedFile = e.dataTransfer.files[0];
-    handleFileSelect(droppedFile);
-  }, []);
+  const handleDrop = useCallback(
+    (e: React.DragEvent, type: UploadType) => {
+      e.preventDefault();
+      setDraggingOver(null);
+      const dropped = e.dataTransfer.files[0];
+      if (dropped) handleFileSelect(type, dropped);
+    },
+    [handleFileSelect]
+  );
 
-  const handleFileSelect = (selectedFile: File) => {
-    setError(null);
-
-    // Validate file type
-    const validTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-    if (!validTypes.includes(selectedFile.type)) {
-      setError("PDF 또는 DOCX 파일만 업로드할 수 있어요.");
-      return;
-    }
-
-    // Validate file size (5MB max)
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      setError("파일 크기는 5MB 이하여야 해요.");
-      return;
-    }
-
-    setFile(selectedFile);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0]);
-    }
-  };
-
-  const removeFile = () => {
-    setFile(null);
-    setError(null);
-  };
+  const removeFile = useCallback((type: UploadType) => {
+    setFile(type, null);
+  }, [setFile]);
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!resumeFile) return;
 
     setIsUploading(true);
     setUploadProgress(0);
 
-    // Simulate upload progress
     const uploadInterval = setInterval(() => {
       setUploadProgress((prev) => {
         if (prev >= 100) {
@@ -102,22 +213,17 @@ export default function ResumeUploadPage() {
     clearInterval(uploadInterval);
     setUploadProgress(100);
     setIsUploading(false);
-
-    // Start analyzing
     setIsAnalyzing(true);
 
-    // Rotate tips during analysis
     const tipInterval = setInterval(() => {
       setCurrentTip((prev) => (prev + 1) % tips.length);
     }, 3000);
-
-    // Simulate analysis time
     await new Promise((resolve) => setTimeout(resolve, 5000));
     clearInterval(tipInterval);
-
-    // Navigate to profile review
     router.push("/onboarding/profile");
   };
+
+  const canSubmit = resumeFile && !isUploading;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
@@ -144,103 +250,73 @@ export default function ResumeUploadPage() {
           <div className="bg-card rounded-2xl border border-border shadow-lg p-8">
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold text-foreground mb-2">
-                이력서를 업로드해 주세요
+                이력서 & 자기소개서 업로드
               </h1>
               <p className="text-foreground-secondary">
-                AI가 이력서를 분석해 채용별 적합도를 계산해 드릴게요.
+                이력서는 필수, 자기소개서는 선택이에요. PDF 또는 DOCX (최대 {MAX_MB}MB)
               </p>
             </div>
 
-            {/* Upload zone */}
-            <div
-              className={`relative border-2 border-dashed rounded-xl p-8 transition-all ${
-                isDragging
-                  ? "border-primary-500 bg-primary-50 dark:bg-primary-950/20"
-                  : file
-                  ? "border-success-500 bg-success-50 dark:bg-success-950/20"
-                  : "border-border hover:border-primary-300 hover:bg-background-secondary"
-              }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {!file ? (
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mx-auto mb-4">
-                    <Upload className="w-8 h-8 text-primary-500" />
-                  </div>
-                  <p className="text-foreground font-medium mb-2">
-                    파일을 드래그하거나 클릭해서 업로드
-                  </p>
-                  <p className="text-sm text-foreground-muted mb-4">
-                    PDF, DOCX 지원 (최대 5MB)
-                  </p>
-                  <input
-                    type="file"
-                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={handleInputChange}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload">
-                    <Button asChild>
-                      <span>파일 선택</span>
-                    </Button>
-                  </label>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-success-100 dark:bg-success-900/30 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-6 h-6 text-success-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
-                      {file.name}
-                    </p>
-                    <p className="text-sm text-foreground-muted">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <button
-                    onClick={removeFile}
-                    className="p-2 text-foreground-muted hover:text-foreground"
-                    aria-label="파일 제거"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              )}
-
-              {/* Upload progress */}
-              {isUploading && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-foreground-secondary">업로드 중...</span>
-                    <span className="text-foreground">{uploadProgress}%</span>
-                  </div>
-                  <div className="h-2 bg-background-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary-500 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
+            {/* Two upload zones */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              {/* 이력서 */}
+              <UploadZone
+                type="resume"
+                label="이력서"
+                required
+                file={resumeFile}
+                isDragging={draggingOver === "resume"}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onFileSelect={handleFileSelect}
+                onRemove={removeFile}
+                accept={ACCEPT}
+                inputId="file-upload-resume"
+              />
+              {/* 자기소개서 */}
+              <UploadZone
+                type="coverLetter"
+                label="자기소개서"
+                required={false}
+                file={coverLetterFile}
+                isDragging={draggingOver === "coverLetter"}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onFileSelect={handleFileSelect}
+                onRemove={removeFile}
+                accept={ACCEPT}
+                inputId="file-upload-cover"
+              />
             </div>
 
-            {/* Error message */}
             {error && (
               <div className="flex items-center gap-2 mt-4 p-3 rounded-lg bg-error-50 dark:bg-error-950/20 text-error-600 dark:text-error-400">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <AlertCircle className="w-5 h-5 shrink-0" />
                 <p className="text-sm">{error}</p>
               </div>
             )}
 
-            {/* Upload button */}
+            {isUploading && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-foreground-secondary">업로드 중...</span>
+                  <span className="text-foreground">{uploadProgress}%</span>
+                </div>
+                <div className="h-2 bg-background-secondary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary-500 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             <Button
               onClick={handleUpload}
               className="w-full h-12 mt-6"
-              disabled={!file || isUploading}
+              disabled={!canSubmit}
             >
               {isUploading ? (
                 "업로드 중..."
@@ -251,28 +327,6 @@ export default function ResumeUploadPage() {
                 </>
               )}
             </Button>
-
-            {/* Tips */}
-            <div className="mt-8 p-4 rounded-xl bg-background-secondary">
-              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Lightbulb className="w-4 h-4 text-warning-500" />
-                좋은 이력서 팁
-              </h3>
-              <ul className="space-y-2 text-sm text-foreground-secondary">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-success-500 mt-0.5 flex-shrink-0" />
-                  경험을 구체적인 수치로 표현하세요
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-success-500 mt-0.5 flex-shrink-0" />
-                  프로젝트의 문제-해결-결과를 명확히 작성하세요
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-success-500 mt-0.5 flex-shrink-0" />
-                  사용 기술은 숙련도 순으로 나열하세요
-                </li>
-              </ul>
-            </div>
           </div>
         ) : (
           /* Analyzing state */
@@ -328,10 +382,10 @@ export default function ResumeUploadPage() {
             </div>
 
             <h2 className="text-2xl font-bold text-foreground mb-2">
-              이력서 분석 중...
+              이력서·자기소개서 분석 중...
             </h2>
             <p className="text-foreground-secondary mb-8">
-              AI가 이력서를 분석하고 있어요. 잠시만 기다려 주세요.
+              AI가 이력서와 자기소개서를 분석하고 있어요. 잠시만 기다려 주세요.
             </p>
 
             {/* Progress bar */}

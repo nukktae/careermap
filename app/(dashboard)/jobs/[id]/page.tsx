@@ -51,6 +51,9 @@ interface LinkareerActivityDetail {
     };
     image?: { contentUrl?: string };
   };
+  detailImageUrl?: string | null;
+  companyType?: string;
+  recruitCategory?: string;
 }
 
 function getBadgeStyle(badge: string) {
@@ -96,6 +99,26 @@ function formatLocation(loc: LinkareerActivityDetail["jobPosting"]["jobLocation"
   const a = loc[0].address;
   const parts = [a.addressRegion, a.addressLocality, a.streetAddress].filter(Boolean);
   return parts.join(" ") || "—";
+}
+
+function formatDateKorean(iso?: string): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+/** Parse 모집직무 from description when not provided by API. */
+function getRecruitCategoryDisplay(
+  description: string | undefined,
+  recruitCategory: string | undefined
+): string {
+  if (recruitCategory) return recruitCategory;
+  if (!description) return "—";
+  const m = description.match(/모집직무\s*[:\s]*([^\n]+)/);
+  return m?.[1]?.trim() ?? "—";
 }
 
 function LinkareerJobDetailView({
@@ -189,9 +212,77 @@ function LinkareerJobDetailView({
           </span>
         </div>
 
-        {jp.description && (
+        {/* Activity-info block (기업형태, 접수기간, 채용형태, 모집직무, 근무지역, 홈페이지) */}
+        <div className="border border-border rounded-xl p-4 mb-6 bg-background-secondary/50">
+          <dl className="grid gap-3 text-sm">
+            {detail.companyType != null && detail.companyType !== "" && (
+              <div>
+                <dt className="text-foreground-muted font-medium mb-0.5">기업형태</dt>
+                <dd className="text-foreground">{detail.companyType}</dd>
+              </div>
+            )}
+            <div>
+              <dt className="text-foreground-muted font-medium mb-0.5">접수기간</dt>
+              <dd className="text-foreground">
+                시작일 {formatDateKorean(jp.datePosted)} · 마감일 {formatDateKorean(jp.validThrough)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-foreground-muted font-medium mb-0.5">채용형태</dt>
+              <dd className="text-foreground">{formatEmploymentType(jp.employmentType)}</dd>
+            </div>
+            <div>
+              <dt className="text-foreground-muted font-medium mb-0.5">모집직무</dt>
+              <dd className="text-foreground">
+                {getRecruitCategoryDisplay(jp.description, detail.recruitCategory)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-foreground-muted font-medium mb-0.5">근무지역</dt>
+              <dd className="text-foreground">{formatLocation(jp.jobLocation)}</dd>
+            </div>
+            {org?.sameAs && (
+              <div>
+                <dt className="text-foreground-muted font-medium mb-0.5">홈페이지</dt>
+                <dd className="text-foreground">
+                  <a
+                    href={org.sameAs}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-500 hover:underline break-all"
+                  >
+                    {org.sameAs}
+                  </a>
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+
+        {/* Detail content image (poster from linkareer page body) */}
+        {detail.detailImageUrl && (
           <div className="mb-6">
             <h2 className="font-semibold text-foreground mb-2">상세 내용</h2>
+            <img
+              src={detail.detailImageUrl}
+              alt={jp.title ?? "채용 공고 상세"}
+              className="max-w-full w-full rounded-lg border border-border"
+            />
+          </div>
+        )}
+
+        {jp.description && !detail.detailImageUrl && (
+          <div className="mb-6">
+            <h2 className="font-semibold text-foreground mb-2">상세 내용</h2>
+            <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
+              {jp.description}
+            </p>
+          </div>
+        )}
+
+        {jp.description && detail.detailImageUrl && (
+          <div className="mb-6">
+            <h2 className="font-semibold text-foreground mb-2">요약</h2>
             <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
               {jp.description}
             </p>

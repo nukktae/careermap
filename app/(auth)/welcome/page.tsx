@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Upload, Target, TrendingUp, ArrowRight, Sparkles } from "lucide-react";
+import { Upload, Target, TrendingUp, ArrowRight } from "lucide-react";
+
+function TickCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.49 2 2 6.49 2 12C2 17.51 6.49 22 12 22C17.51 22 22 17.51 22 12C22 6.49 17.51 2 12 2ZM16.78 9.7L11.11 15.37C10.97 15.51 10.78 15.59 10.58 15.59C10.38 15.59 10.19 15.51 10.05 15.37L7.22 12.54C6.93 12.25 6.93 11.77 7.22 11.48C7.51 11.19 7.99 11.19 8.28 11.48L10.58 13.78L15.72 8.64C16.01 8.35 16.49 8.35 16.78 8.64C17.07 8.93 17.07 9.4 16.78 9.7Z" fill="currentColor" />
+    </svg>
+  );
+}
 
 const steps = [
   {
@@ -31,7 +39,7 @@ export default function WelcomePage() {
           {/* Badge */}
           <div className="flex justify-center mb-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-400 text-sm font-medium">
-              <Sparkles className="w-4 h-4" />
+              <TickCircleIcon className="w-4 h-4 shrink-0" />
               <span>가입 완료!</span>
             </div>
           </div>
@@ -43,19 +51,17 @@ export default function WelcomePage() {
             </h1>
             <p className="text-lg text-foreground-secondary text-pretty">
               이제 취업 준비를 시작해볼까요?
-              <br />
-              아래 3단계로 빠르게 시작할 수 있어요.
             </p>
           </div>
 
-          {/* Steps */}
+          {/* Steps - use design system tokens for cross-browser consistency */}
           <div className="space-y-4 mb-10">
             {steps.map((step, index) => (
               <div
                 key={step.title}
-                className="flex items-start gap-4 p-4 rounded-xl bg-background-secondary border border-border"
+                className="flex items-start gap-4 p-4 rounded-xl bg-background-secondary"
               >
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-primary-badge">
                   <step.icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div className="flex-1">

@@ -6,19 +6,12 @@ import { AppIcon } from "@/components/ui/app-icon";
 
 // Mock data
 const userData = {
-  name: "철수",
+  name: "아노",
   matchSummary: {
     total: 16,
     applyNow: 3,
     prepNeeded: 8,
     stretchGoal: 5,
-  },
-  learningPlan: {
-    title: "Docker 기초",
-    week: 2,
-    totalWeeks: 4,
-    progress: 75,
-    nextTask: "Docker Compose로 멀티 컨테이너 앱 실행",
   },
   applications: {
     applied: 5,
@@ -102,9 +95,9 @@ export default function DashboardPage() {
           <Link
             key={action.label}
             href={action.href}
-            className="flex flex-col items-center gap-2 p-4 bg-card rounded-xl border border-border hover:border-primary-200 hover:bg-primary-50/50 dark:hover:border-primary-800 dark:hover:bg-primary-950/20 transition-all"
+            className="flex flex-col items-center gap-2 p-4 bg-card rounded-xl border border-border hover:border-primary-200 dark:hover:border-primary-800 hover:bg-primary-surface-hover transition-all"
           >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary-100 dark:bg-primary-900/30">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary-badge">
               <AppIcon
                 name={action.icon}
                 className="w-6 h-6 text-primary-600 dark:text-primary-400"
@@ -118,7 +111,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Match Summary */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center justify-between mb-4">
@@ -166,51 +159,6 @@ export default function DashboardPage() {
           <Button asChild className="w-full mt-4">
             <Link href="/jobs">
               모든 채용 보기
-              <AppIcon name="arrow-right" className="w-4 h-4 ml-1" />
-            </Link>
-          </Button>
-        </div>
-
-        {/* Learning Progress */}
-        <div className="bg-card rounded-xl p-6 border border-border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-foreground">학습 진행률</h2>
-            <AppIcon name="chart" className="w-5 h-5 text-primary-500" />
-          </div>
-
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-medium text-foreground">
-                {userData.learningPlan.title}
-              </span>
-              <span className="text-sm text-primary-500 font-semibold">
-                {userData.learningPlan.progress}%
-              </span>
-            </div>
-            <div className="h-2 bg-background-secondary rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-full transition-all"
-                style={{ width: `${userData.learningPlan.progress}%` }}
-              />
-            </div>
-            <p className="text-sm text-foreground-secondary mt-2">
-              {userData.learningPlan.week}주차 / {userData.learningPlan.totalWeeks}주
-            </p>
-          </div>
-
-          <div className="p-3 rounded-lg bg-background-secondary mb-4">
-            <div className="flex items-center gap-2 text-sm text-foreground-secondary mb-1">
-              <AppIcon name="clock" className="w-4 h-4" />
-              <span>다음 할 일</span>
-            </div>
-            <p className="text-sm font-medium text-foreground">
-              {userData.learningPlan.nextTask}
-            </p>
-          </div>
-
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/prepare">
-              계속하기
               <AppIcon name="arrow-right" className="w-4 h-4 ml-1" />
             </Link>
           </Button>

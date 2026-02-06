@@ -61,6 +61,8 @@ export interface Job {
   match: number;
   badge: MatchBadge;
   logo: string;
+  /** Optional logo image URL (e.g. from Linkareer); when set, card shows image preview. */
+  logoUrl?: string;
   matchedSkills: string[];
   missingSkills: string[];
   salary: string;

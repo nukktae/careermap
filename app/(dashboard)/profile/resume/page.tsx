@@ -6,7 +6,7 @@ import { FileText, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getProfile, updateProfile } from "@/lib/data/profile";
+import { getProfile, updateProfile, getResumeSectionsForDisplay } from "@/lib/data/profile";
 
 const SECTION_KEYS = ["summary", "education", "experience", "projects", "skills"] as const;
 const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
@@ -29,11 +29,7 @@ export default function EditResumePage() {
   useEffect(() => {
     if (mounted) {
       const profile = getProfile();
-      const rs = profile.resumeSections ?? {};
-      const next: Record<string, string> = {};
-      SECTION_KEYS.forEach((k) => {
-        next[k] = rs[k] ?? "";
-      });
+      const next = getResumeSectionsForDisplay(profile);
       setSections(next);
     }
   }, [mounted]);

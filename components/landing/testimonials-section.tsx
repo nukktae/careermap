@@ -9,7 +9,7 @@ const testimonials = [
     company: "네이버 합격",
     image: "/testimonials/user1.jpg",
     content:
-      "막연하게 취업 준비를 하다가 CareerMap을 알게 됐어요. 내가 어떤 스킬이 부족한지, 무엇을 준비해야 하는지 명확하게 보여줘서 효율적으로 준비할 수 있었습니다.",
+      "막연하게 취업 준비를 하다가 잡자을 알게 됐어요. 내가 어떤 스킬이 부족한지, 무엇을 준비해야 하는지 명확하게 보여줘서 효율적으로 준비할 수 있었습니다.",
     rating: 5,
   },
   {
@@ -54,7 +54,7 @@ export function TestimonialsSection() {
             1,000명 이상이 취업에 성공했습니다
           </h2>
           <p className="text-lg text-foreground-secondary">
-            CareerMap으로 목표 회사에 합격한 선배들의 이야기를 들어보세요.
+            잡자으로 목표 회사에 합격한 선배들의 이야기를 들어보세요.
           </p>
         </div>
 

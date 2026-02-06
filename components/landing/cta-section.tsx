@@ -43,32 +43,10 @@ export function CTASection() {
               variant="outline"
               size="lg"
               asChild
-              className="w-full sm:w-auto text-base px-8 border-white/30 text-white hover:bg-white/10"
+              className="w-full sm:w-auto text-base px-8 bg-transparent border-white/30 text-white hover:bg-white/10"
             >
               <Link href="#features">기능 더 알아보기</Link>
             </Button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 mt-16 pt-12 border-t border-white/20">
-            <div>
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-1">
-                1,000+
-              </div>
-              <div className="text-sm text-white/70">취업 성공</div>
-            </div>
-            <div>
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-1">
-                92%
-              </div>
-              <div className="text-sm text-white/70">매칭 정확도</div>
-            </div>
-            <div>
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-1">
-                4.9/5
-              </div>
-              <div className="text-sm text-white/70">사용자 평점</div>
-            </div>
           </div>
         </div>
       </div>

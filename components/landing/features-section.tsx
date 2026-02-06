@@ -49,17 +49,17 @@ const features = [
 
 const colorClasses = {
   primary: {
-    bg: "bg-primary-100 dark:bg-primary-900/30",
+    bg: "bg-primary-badge",
     icon: "text-primary-600 dark:text-primary-400",
     border: "group-hover:border-primary-200 dark:group-hover:border-primary-800",
   },
   success: {
-    bg: "bg-success-100 dark:bg-success-900/30",
+    bg: "bg-success-badge",
     icon: "text-success-600 dark:text-success-400",
     border: "group-hover:border-success-200 dark:group-hover:border-success-800",
   },
   warning: {
-    bg: "bg-warning-100 dark:bg-warning-900/30",
+    bg: "bg-warning-badge",
     icon: "text-warning-600 dark:text-warning-400",
     border: "group-hover:border-warning-200 dark:group-hover:border-warning-800",
   },
@@ -71,7 +71,7 @@ export function FeaturesSection() {
       <div className="container-app">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium mb-4">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-primary-badge text-primary-badge-text text-sm font-medium mb-4">
             주요 기능
           </span>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4 text-balance">

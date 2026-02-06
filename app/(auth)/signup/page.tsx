@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,18 +35,14 @@ export default function SignUpPage() {
       {/* Left side - Visual */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary-600 to-primary-800 items-center justify-center p-12">
         <div className="max-w-lg">
-          <div className="w-20 h-20 rounded-2xl bg-white/20 flex items-center justify-center mb-8">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="w-10 h-10 text-white"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-8 overflow-hidden">
+            <Image
+              src="/assets/logos/logojob.png"
+              alt="잡자"
+              width={80}
+              height={80}
+              className="w-20 h-20 object-contain"
+            />
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">
             취업 준비의 새로운 시작
@@ -79,20 +76,14 @@ export default function SignUpPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="w-6 h-6 text-white"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold text-foreground">CareerMap</span>
+            <Image
+              src="/assets/logos/logojob.png"
+              alt="잡자"
+              width={40}
+              height={40}
+              className="w-10 h-10 rounded-xl object-contain"
+            />
+            <span className="text-2xl font-bold text-foreground">잡자</span>
           </Link>
 
           {/* Header */}

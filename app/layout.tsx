@@ -13,13 +13,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CareerMap | 취업 준비, 이제 명확하게",
+  title: "잡자 | 취업 준비, 이제 명확하게",
   description:
     "AI가 분석하는 내 경쟁력과 맞춤 준비 전략. 취업 준비의 모든 것을 한 곳에서.",
   keywords: ["취업", "이력서", "자소서", "면접", "커리어", "AI", "채용"],
-  authors: [{ name: "CareerMap" }],
+  authors: [{ name: "잡자" }],
   openGraph: {
-    title: "CareerMap | 취업 준비, 이제 명확하게",
+    title: "잡자 | 취업 준비, 이제 명확하게",
     description: "AI가 분석하는 내 경쟁력과 맞춤 준비 전략",
     type: "website",
     locale: "ko_KR",
