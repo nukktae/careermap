@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LINKAREER_ID_OFFSET } from "@/lib/data/linkareer";
 
 const ANALYZE_CACHE_KEY_PREFIX = "careermap-job-analyze-";
+
+/** 커피챗 프로필 목업: public/assets/coffeechat/ 에 이미지 추가 시 표시됨 (PNG/WebP, 정사각형 320px 권장) */
+const COFFEECHAT_MENTORS = [
+  { name: "이지연 (Sophia Lee)", badge: "RECRUITER", role: "Vinsign 디자인/프로덕트 채용 총괄", bio: "채용 프로세스 및 처우 관련 문의", initial: "S", color: "bg-emerald-100 text-emerald-700", image: "/assets/coffeechat/mentor-sophia.png" },
+  { name: "박준서 (James Park)", badge: "DESIGN LEAD", role: "Vinsign 프로덕트 디자인 팀 리드", bio: "디자인 시스템 및 팀 문화 관련 문의", initial: "J", color: "bg-blue-100 text-blue-700", image: "/assets/coffeechat/mentor-james.png" },
+  { name: "김다희 (Chloe Kim)", badge: "SENIOR DESIGNER", role: "Vinsign 시니어 프로덕트 디자이너", bio: "실무 프로세스 및 협업 방식 관련 문의", initial: "C", color: "bg-orange-100 text-orange-700", image: "/assets/coffeechat/mentor-chloe.png" },
+] as const;
+
+function MentorAvatar({ mentor }: { mentor: (typeof COFFEECHAT_MENTORS)[number] }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const useImage = mentor.image && !imgFailed;
+  return (
+    <div className={`relative w-20 h-20 min-w-[5rem] min-h-[5rem] rounded-[2rem] overflow-hidden shrink-0 flex items-center justify-center ${useImage ? "bg-background-secondary" : mentor.color}`}>
+      {useImage ? (
+        <img
+          src={mentor.image}
+          alt={mentor.name}
+          className="absolute inset-0 w-full h-full object-cover object-center block"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <span className="text-3xl font-bold">{mentor.initial}</span>
+      )}
+    </div>
+  );
+}
 
 /** API response for /api/linkareer/activity/[activityId] */
 interface LinkareerActivityDetail {
@@ -86,7 +113,8 @@ function getBadgeLabel(badge: string) {
   }
 }
 
-function formatEmploymentType(et: string | string[] | undefined): string {
+function formatEmploymentType(et: string | string[] | undefined):
+ string {
   if (!et) return "—";
   const arr = Array.isArray(et) ? et : [et];
   const map: Record<string, string> = {
@@ -284,151 +312,218 @@ function LinkareerJobDetailView({
           </span>
         </div>
 
-        <Tabs defaultValue="detail" className="mb-6">
+        <Tabs defaultValue="intro" className="mb-6">
           <TabsList className="w-full grid grid-cols-3 rounded-xl bg-background-secondary/50 p-1 h-auto">
-            <TabsTrigger value="detail" className="rounded-lg py-2.5 text-sm">
-              상세 내용
+            <TabsTrigger value="intro" className="rounded-lg py-2.5 text-sm">
+              상세 정보
             </TabsTrigger>
-            <TabsTrigger value="summary" className="rounded-lg py-2.5 text-sm">
-              요약
+            <TabsTrigger value="similar" className="rounded-lg py-2.5 text-sm">
+              관련 채용
             </TabsTrigger>
-            <TabsTrigger value="info" className="rounded-lg py-2.5 text-sm">
-              공고 정보
+            <TabsTrigger value="coffee" className="rounded-lg py-2.5 text-sm">
+              커피챗
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="detail" className="mt-5">
-            {!detail.detailImageUrl && (
-              <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
-                {jp.description ?? "—"}
-              </p>
-            )}
-            {detail.detailImageUrl && (
-              <>
-                {analyzeLoading && (
-                  <div className="rounded-xl bg-background-secondary/30 py-12 text-center">
-                    <p className="text-foreground-secondary">상세 내용 분석 중...</p>
-                    <div className="mt-3 flex justify-center gap-1">
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500" />
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500 [animation-delay:0.2s]" />
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500 [animation-delay:0.4s]" />
-                    </div>
-                  </div>
+          <TabsContent value="intro" className="mt-5">
+            <Tabs defaultValue="detail" className="w-full">
+              <div className="flex justify-end mb-4">
+                <TabsList className="bg-background-secondary/50 p-1 h-auto inline-flex">
+                  <TabsTrigger value="detail" className="px-4 py-1.5 text-xs">상세 내용</TabsTrigger>
+                  <TabsTrigger value="summary" className="px-4 py-1.5 text-xs">요약</TabsTrigger>
+                  <TabsTrigger value="info" className="px-4 py-1.5 text-xs">공고 정보</TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="detail" className="mt-0">
+                {!detail.detailImageUrl && (
+                  <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
+                    {jp.description ?? "—"}
+                  </p>
                 )}
-                {!analyzeLoading && analyzeError && (
-                  <div className="space-y-4">
-                    <img
-                      src={detail.detailImageUrl}
-                      alt={jp.title ?? "채용 공고 상세"}
-                      className="max-w-full w-full rounded-lg"
-                    />
-                    <p className="text-sm text-foreground-muted">{analyzeError}</p>
-                    <Button variant="outline" size="sm" onClick={() => fetchAnalyze()}>
-                      OCR 다시 시도
-                    </Button>
-                  </div>
-                )}
-                {!analyzeLoading && analyzedSections && analyzedSections.length > 0 && !showOriginalImage && (
-                  <div className="space-y-6">
-                    {analyzedSections.map((section, i) => (
-                      <div key={i} className="rounded-xl bg-background-secondary/30 p-5">
-                        <h3 className="font-semibold text-foreground mb-3">
-                          {section.title}
-                        </h3>
-                        <p className="text-foreground-secondary whitespace-pre-line leading-relaxed text-sm">
-                          {section.content}
-                        </p>
+                {detail.detailImageUrl && (
+                  <>
+                    {analyzeLoading && (
+                      <div className="rounded-xl bg-background-secondary/30 py-12 text-center">
+                        <p className="text-foreground-secondary">상세 내용 분석 중...</p>
+                        <div className="mt-3 flex justify-center gap-1">
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500" />
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500 [animation-delay:0.2s]" />
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500 [animation-delay:0.4s]" />
+                        </div>
                       </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setShowOriginalImage(true)}
-                      className="inline-flex items-center gap-2 rounded-lg bg-background-secondary/50 px-3 py-2 text-sm text-foreground-secondary hover:bg-background-secondary hover:text-foreground"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                      원본 이미지 보기
-                    </button>
+                    )}
+                    {!analyzeLoading && analyzeError && (
+                      <div className="space-y-4">
+                        <img
+                          src={detail.detailImageUrl}
+                          alt={jp.title ?? "채용 공고 상세"}
+                          className="max-w-full w-full rounded-lg"
+                        />
+                        <p className="text-sm text-foreground-muted">{analyzeError}</p>
+                        <Button variant="outline" size="sm" onClick={() => fetchAnalyze()}>
+                          OCR 다시 시도
+                        </Button>
+                      </div>
+                    )}
+                    {!analyzeLoading && analyzedSections && analyzedSections.length > 0 && !showOriginalImage && (
+                      <div className="space-y-6">
+                        {analyzedSections.map((section, i) => (
+                          <div key={i} className="rounded-xl bg-background-secondary/30 p-5">
+                            <h3 className="font-semibold text-foreground mb-3">
+                              {section.title}
+                            </h3>
+                            <p className="text-foreground-secondary whitespace-pre-line leading-relaxed text-sm">
+                              {section.content}
+                            </p>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setShowOriginalImage(true)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-background-secondary/50 px-3 py-2 text-sm text-foreground-secondary hover:bg-background-secondary hover:text-foreground"
+                        >
+                          <ImageIcon className="w-4 h-4" />
+                          원본 이미지 보기
+                        </button>
+                      </div>
+                    )}
+                    {!analyzeLoading && showOriginalImage && detail.detailImageUrl && (
+                      <div className="space-y-3">
+                        <img
+                          src={detail.detailImageUrl}
+                          alt={jp.title ?? "채용 공고 상세"}
+                          className="max-w-full w-full rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowOriginalImage(false)}
+                          className="text-sm text-primary-500 hover:underline"
+                        >
+                          구조화된 보기로 돌아가기
+                        </button>
+                      </div>
+                    )}
+                    {!analyzeLoading && detail.detailImageUrl && !analyzedSections?.length && !analyzeError && (
+                      <img
+                        src={detail.detailImageUrl}
+                        alt={jp.title ?? "채용 공고 상세"}
+                        className="max-w-full w-full rounded-lg"
+                      />
+                    )}
+                  </>
+                )}
+              </TabsContent>
+
+              <TabsContent value="summary" className="mt-0">
+                <div className="rounded-xl bg-background-secondary/30 p-5">
+                  <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
+                    {jp.description ?? "요약 내용이 없습니다."}
+                  </p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="info" className="mt-0">
+                <dl className="grid gap-4 text-sm rounded-xl bg-background-secondary/30 p-5">
+                  {detail.companyType != null && detail.companyType !== "" && (
+                    <div>
+                      <dt className="text-foreground-muted font-medium mb-1">기업형태</dt>
+                      <dd className="text-foreground">{detail.companyType}</dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt className="text-foreground-muted font-medium mb-1">접수기간</dt>
+                    <dd className="text-foreground">
+                      시작일 {formatDateKorean(jp.datePosted)} · 마감일 {formatDateKorean(jp.validThrough)}
+                    </dd>
                   </div>
-                )}
-                {!analyzeLoading && showOriginalImage && detail.detailImageUrl && (
-                  <div className="space-y-3">
-                    <img
-                      src={detail.detailImageUrl}
-                      alt={jp.title ?? "채용 공고 상세"}
-                      className="max-w-full w-full rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowOriginalImage(false)}
-                      className="text-sm text-primary-500 hover:underline"
-                    >
-                      구조화된 보기로 돌아가기
-                    </button>
+                  <div>
+                    <dt className="text-foreground-muted font-medium mb-1">채용형태</dt>
+                    <dd className="text-foreground">{formatEmploymentType(jp.employmentType)}</dd>
                   </div>
-                )}
-                {!analyzeLoading && detail.detailImageUrl && !analyzedSections?.length && !analyzeError && (
-                  <img
-                    src={detail.detailImageUrl}
-                    alt={jp.title ?? "채용 공고 상세"}
-                    className="max-w-full w-full rounded-lg"
-                  />
-                )}
-              </>
-            )}
+                  <div>
+                    <dt className="text-foreground-muted font-medium mb-1">모집직무</dt>
+                    <dd className="text-foreground">
+                      {getRecruitCategoryDisplay(jp.description, detail.recruitCategory)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-foreground-muted font-medium mb-1">근무지역</dt>
+                    <dd className="text-foreground">{formatLocation(jp.jobLocation)}</dd>
+                  </div>
+                  {org?.sameAs && (
+                    <div>
+                      <dt className="text-foreground-muted font-medium mb-1">홈페이지</dt>
+                      <dd className="text-foreground">
+                        <a
+                          href={org.sameAs}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-500 hover:underline break-all"
+                        >
+                          {org.sameAs}
+                        </a>
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="summary" className="mt-5">
-            <div className="rounded-xl bg-background-secondary/30 p-5">
-              <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
-                {jp.description ?? "요약 내용이 없습니다."}
-              </p>
+          <TabsContent value="similar" className="mt-5">
+            <div className="rounded-xl bg-background-secondary/30 p-8 text-center border border-dashed border-border">
+              <p className="text-foreground-secondary">관련 채용 정보를 불러오고 있습니다...</p>
             </div>
           </TabsContent>
 
-          <TabsContent value="info" className="mt-5">
-            <dl className="grid gap-4 text-sm rounded-xl bg-background-secondary/30 p-5">
-              {detail.companyType != null && detail.companyType !== "" && (
+          <TabsContent value="coffee" className="mt-6">
+            <div className="min-h-[511px] space-y-4">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <dt className="text-foreground-muted font-medium mb-1">기업형태</dt>
-                  <dd className="text-foreground">{detail.companyType}</dd>
+                  <h3 className="text-lg font-bold text-foreground">현직자 커피챗</h3>
+                  <p className="text-sm text-foreground-secondary">이 회사에 재직 중인 현직자에게 궁금한 점을 물어보세요.</p>
                 </div>
-              )}
-              <div>
-                <dt className="text-foreground-muted font-medium mb-1">접수기간</dt>
-                <dd className="text-foreground">
-                  시작일 {formatDateKorean(jp.datePosted)} · 마감일 {formatDateKorean(jp.validThrough)}
-                </dd>
               </div>
-              <div>
-                <dt className="text-foreground-muted font-medium mb-1">채용형태</dt>
-                <dd className="text-foreground">{formatEmploymentType(jp.employmentType)}</dd>
+
+              <div className="space-y-4">
+                {COFFEECHAT_MENTORS.map((mentor, i) => (
+                  <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center gap-6 p-6 rounded-3xl border border-border bg-card">
+                    <div className="relative w-20 h-20 shrink-0">
+                      <MentorAvatar mentor={mentor} />
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#0077B5] flex items-center justify-center text-white border border-card pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                          <rect x="2" y="9" width="4" height="12" />
+                          <circle cx="4" cy="4" r="2" />
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-xl font-bold text-foreground">{mentor.name}</h4>
+                        <span className="px-2.5 py-1 rounded-md bg-white dark:bg-white/10 text-foreground dark:text-foreground text-[10px] font-bold uppercase tracking-wide border border-border">
+                          {mentor.badge}
+                        </span>
+                      </div>
+                      <p className="text-base text-foreground-secondary font-medium">{mentor.role}</p>
+                      <p className="text-sm text-foreground-muted">{mentor.bio}</p>
+                    </div>
+
+                    <Button className="shrink-0 rounded-xl bg-[#0077B5] hover:bg-[#006097] text-white px-6 h-12" size="lg">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" className="mr-2">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                        <rect x="2" y="9" width="4" height="12" />
+                        <circle cx="4" cy="4" r="2" />
+                      </svg>
+                      프로필 확인하기
+                    </Button>
+                  </div>
+                ))}
+
               </div>
-              <div>
-                <dt className="text-foreground-muted font-medium mb-1">모집직무</dt>
-                <dd className="text-foreground">
-                  {getRecruitCategoryDisplay(jp.description, detail.recruitCategory)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-foreground-muted font-medium mb-1">근무지역</dt>
-                <dd className="text-foreground">{formatLocation(jp.jobLocation)}</dd>
-              </div>
-              {org?.sameAs && (
-                <div>
-                  <dt className="text-foreground-muted font-medium mb-1">홈페이지</dt>
-                  <dd className="text-foreground">
-                    <a
-                      href={org.sameAs}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-500 hover:underline break-all"
-                    >
-                      {org.sameAs}
-                    </a>
-                  </dd>
-                </div>
-              )}
-            </dl>
+            </div>
           </TabsContent>
         </Tabs>
 
@@ -570,7 +665,7 @@ export default function JobDetailPage() {
         <span>채용 목록으로</span>
       </Link>
 
-      <div className="bg-card rounded-2xl border border-border p-6 mb-6">
+      <div className="bg-card rounded-2xl border border-border p-6 mb-6 shadow-sm">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-xl bg-background-secondary flex items-center justify-center text-foreground font-bold text-2xl">
@@ -600,7 +695,7 @@ export default function JobDetailPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 mb-6 text-sm text-foreground-secondary">
+        <div className="flex flex-wrap gap-4 mb-6 text-sm text-foreground-secondary border-b border-border pb-6">
           <span className="flex items-center gap-1.5">
             <MapPin className="w-4 h-4" />
             {job.location}
@@ -620,7 +715,7 @@ export default function JobDetailPage() {
         </div>
 
         {/* Match Score Card */}
-        <div className="bg-background-secondary rounded-xl p-4 mb-6">
+        <div className="bg-background-secondary rounded-xl p-4 mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="relative w-20 h-20">
@@ -689,7 +784,201 @@ export default function JobDetailPage() {
           job={job}
         />
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <Tabs defaultValue="intro" className="mb-8">
+          <TabsList className="w-full grid grid-cols-3 rounded-xl bg-background-secondary/50 p-1 h-auto">
+            <TabsTrigger value="intro" className="rounded-lg py-2.5 text-sm">
+              상세 정보
+            </TabsTrigger>
+            <TabsTrigger value="similar" className="rounded-lg py-2.5 text-sm">
+              관련 채용
+            </TabsTrigger>
+            <TabsTrigger value="coffee" className="rounded-lg py-2.5 text-sm">
+              커피챗
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="intro" className="mt-6">
+            <div className="border border-border rounded-xl overflow-hidden">
+              <div className="border-b border-border">
+                <button
+                  className="w-full flex items-center justify-between p-4 hover:bg-background-secondary transition-colors"
+                  onClick={() => toggleSection("description")}
+                >
+                  <h2 className="font-semibold text-foreground">회사 소개</h2>
+                  {expandedSections.includes("description") ? (
+                    <ChevronUp className="w-5 h-5 text-foreground-muted" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-foreground-muted" />
+                  )}
+                </button>
+                {expandedSections.includes("description") && (
+                  <div className="px-4 pb-4">
+                    <p className="text-foreground-secondary whitespace-pre-line leading-relaxed text-sm">
+                      {job.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-b border-border">
+                <button
+                  className="w-full flex items-center justify-between p-4 hover:bg-background-secondary transition-colors"
+                  onClick={() => toggleSection("responsibilities")}
+                >
+                  <h2 className="font-semibold text-foreground">주요 업무</h2>
+                  {expandedSections.includes("responsibilities") ? (
+                    <ChevronUp className="w-5 h-5 text-foreground-muted" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-foreground-muted" />
+                  )}
+                </button>
+                {expandedSections.includes("responsibilities") && (
+                  <ul className="px-4 pb-4 space-y-2">
+                    {job.responsibilities.map((item, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-foreground-secondary text-sm"
+                      >
+                        <span className="text-primary-500 mt-1">•</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="border-b border-border">
+                <button
+                  className="w-full flex items-center justify-between p-4 hover:bg-background-secondary transition-colors"
+                  onClick={() => toggleSection("requirements")}
+                >
+                  <h2 className="font-semibold text-foreground">자격 요건</h2>
+                  {expandedSections.includes("requirements") ? (
+                    <ChevronUp className="w-5 h-5 text-foreground-muted" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-foreground-muted" />
+                  )}
+                </button>
+                {expandedSections.includes("requirements") && (
+                  <ul className="px-4 pb-4 space-y-2">
+                    {job.requirements.map((item, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-foreground-secondary text-sm"
+                      >
+                        <Check className="w-4 h-4 text-success-500 mt-0.5 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div>
+                <button
+                  className="w-full flex items-center justify-between p-4 hover:bg-background-secondary transition-colors"
+                  onClick={() => toggleSection("benefits")}
+                >
+                  <h2 className="font-semibold text-foreground">복리후생</h2>
+                  {expandedSections.includes("benefits") ? (
+                    <ChevronUp className="w-5 h-5 text-foreground-muted" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-foreground-muted" />
+                  )}
+                </button>
+                {expandedSections.includes("benefits") && (
+                  <ul className="px-4 pb-4 space-y-2">
+                    {job.benefits.map((item, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-foreground-secondary text-sm"
+                      >
+                        <span className="text-primary-500 mt-1">•</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="similar" className="mt-6">
+            <div className="space-y-3">
+              {similarJobs.map((similar) => (
+                <Link
+                  key={similar.id}
+                  href={`/jobs/${similar.id}`}
+                  className="flex items-center gap-4 p-4 rounded-xl border border-border hover:bg-background-secondary transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-background-secondary flex items-center justify-center text-foreground font-bold">
+                    {similar.logo}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium text-foreground">{similar.title}</h3>
+                    <p className="text-sm text-foreground-secondary">
+                      {similar.company}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    {similar.match}%
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="coffee" className="mt-6">
+            <div className="min-h-[511px] space-y-4">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">현직자 커피챗</h3>
+                  <p className="text-sm text-foreground-secondary">이 회사에 재직 중인 현직자에게 궁금한 점을 물어보세요.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {COFFEECHAT_MENTORS.map((mentor, i) => (
+                  <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center gap-6 p-6 rounded-3xl border border-border bg-card">
+                    <div className="relative w-20 h-20 shrink-0">
+                      <MentorAvatar mentor={mentor} />
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#0077B5] flex items-center justify-center text-white border border-card pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                          <rect x="2" y="9" width="4" height="12" />
+                          <circle cx="4" cy="4" r="2" />
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-xl font-bold text-foreground">{mentor.name}</h4>
+                        <span className="px-2.5 py-1 rounded-md bg-white dark:bg-white/10 text-foreground dark:text-foreground text-[10px] font-bold uppercase tracking-wide border border-border">
+                          {mentor.badge}
+                        </span>
+                      </div>
+                      <p className="text-base text-foreground-secondary font-medium">{mentor.role}</p>
+                      <p className="text-sm text-foreground-muted">{mentor.bio}</p>
+                    </div>
+
+                    <Button className="shrink-0 rounded-xl bg-[#0077B5] hover:bg-[#006097] text-white px-6 h-12" size="lg">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" className="mr-2">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                        <rect x="2" y="9" width="4" height="12" />
+                        <circle cx="4" cy="4" r="2" />
+                      </svg>
+                      프로필 확인하기
+                    </Button>
+                  </div>
+                ))}
+
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-border">
           <Button asChild className="flex-1">
             <Link href={`/prepare/skills?job=${job.id}`}>
               <Target className="w-5 h-5 mr-2" />
@@ -704,168 +993,6 @@ export default function JobDetailPage() {
           </Button>
         </div>
       </div>
-
-      {/* Job Description */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden mb-6">
-        <div className="border-b border-border">
-          <button
-            className="w-full flex items-center justify-between p-4 hover:bg-background-secondary transition-colors"
-            onClick={() => toggleSection("description")}
-          >
-            <h2 className="font-semibold text-foreground">회사 소개</h2>
-            {expandedSections.includes("description") ? (
-              <ChevronUp className="w-5 h-5 text-foreground-muted" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-foreground-muted" />
-            )}
-          </button>
-          {expandedSections.includes("description") && (
-            <div className="px-4 pb-4">
-              <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
-                {job.description}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="border-b border-border">
-          <button
-            className="w-full flex items-center justify-between p-4 hover:bg-background-secondary transition-colors"
-            onClick={() => toggleSection("responsibilities")}
-          >
-            <h2 className="font-semibold text-foreground">주요 업무</h2>
-            {expandedSections.includes("responsibilities") ? (
-              <ChevronUp className="w-5 h-5 text-foreground-muted" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-foreground-muted" />
-            )}
-          </button>
-          {expandedSections.includes("responsibilities") && (
-            <ul className="px-4 pb-4 space-y-2">
-              {job.responsibilities.map((item, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-foreground-secondary"
-                >
-                  <span className="text-primary-500 mt-1">•</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="border-b border-border">
-          <button
-            className="w-full flex items-center justify-between p-4 hover:bg-background-secondary transition-colors"
-            onClick={() => toggleSection("requirements")}
-          >
-            <h2 className="font-semibold text-foreground">자격 요건</h2>
-            {expandedSections.includes("requirements") ? (
-              <ChevronUp className="w-5 h-5 text-foreground-muted" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-foreground-muted" />
-            )}
-          </button>
-          {expandedSections.includes("requirements") && (
-            <ul className="px-4 pb-4 space-y-2">
-              {job.requirements.map((item, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-foreground-secondary"
-                >
-                  <Check className="w-4 h-4 text-success-500 mt-0.5 shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="border-b border-border">
-          <button
-            className="w-full flex items-center justify-between p-4 hover:bg-background-secondary transition-colors"
-            onClick={() => toggleSection("preferred")}
-          >
-            <h2 className="font-semibold text-foreground">우대 사항</h2>
-            {expandedSections.includes("preferred") ? (
-              <ChevronUp className="w-5 h-5 text-foreground-muted" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-foreground-muted" />
-            )}
-          </button>
-          {expandedSections.includes("preferred") && (
-            <ul className="px-4 pb-4 space-y-2">
-              {job.preferred.map((item, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-foreground-secondary"
-                >
-                  <span className="text-warning-500 mt-1">•</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div>
-          <button
-            className="w-full flex items-center justify-between p-4 hover:bg-background-secondary transition-colors"
-            onClick={() => toggleSection("benefits")}
-          >
-            <h2 className="font-semibold text-foreground">복리후생</h2>
-            {expandedSections.includes("benefits") ? (
-              <ChevronUp className="w-5 h-5 text-foreground-muted" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-foreground-muted" />
-            )}
-          </button>
-          {expandedSections.includes("benefits") && (
-            <ul className="px-4 pb-4 space-y-2">
-              {job.benefits.map((item, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-foreground-secondary"
-                >
-                  <span className="text-primary-500 mt-1">•</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      {similarJobs.length > 0 && (
-        <div className="bg-card rounded-2xl border border-border p-4">
-          <h2 className="font-semibold text-foreground mb-4">
-            이런 채용도 있어요
-          </h2>
-          <div className="space-y-3">
-            {similarJobs.map((similar) => (
-              <Link
-                key={similar.id}
-                href={`/jobs/${similar.id}`}
-                className="flex items-center gap-4 p-3 rounded-xl hover:bg-background-secondary transition-colors"
-              >
-                <div className="w-10 h-10 rounded-lg bg-background-secondary flex items-center justify-center text-foreground font-bold">
-                  {similar.logo}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium text-foreground">{similar.title}</h3>
-                  <p className="text-sm text-foreground-secondary">
-                    {similar.company}
-                  </p>
-                </div>
-                <span className="text-sm font-semibold text-foreground">
-                  {similar.match}%
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
