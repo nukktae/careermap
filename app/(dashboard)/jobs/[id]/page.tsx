@@ -30,8 +30,183 @@ import { MatchExplanationModal } from "@/components/jobs/match-explanation-modal
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { LINKAREER_ID_OFFSET } from "@/lib/data/linkareer";
+import { useProfile } from "@/lib/hooks/use-profile";
+import type { UserProfile } from "@/lib/data/profile";
 
 const ANALYZE_CACHE_KEY_PREFIX = "careermap-job-analyze-";
+
+// ----- /api/jobs/recommend (resume-analyzer) types and mappers -----
+interface RecommendUserProfile {
+  name: string;
+  email: string;
+  phone: string;
+  desired_job: string;
+  educations: Array<{ university: string; major: string; graduation_year: string; gpa: string }>;
+  skills: string[];
+  experiences: string[];
+  certificates: string[];
+  projects: Array<{ name: string; description: string; tech_stack: string[] }>;
+  awards: string[];
+}
+
+interface RecommendJobPosting {
+  activityId: string;
+  sourceUrl: string;
+  title: string;
+  companyName: string;
+  companyType?: string | null;
+  location: string;
+  employmentType: string[];
+  experienceLevel: string[];
+  responsibilities: string[];
+  qualifications: string[];
+  description: string;
+  postedAt?: string | null;
+  closingAt?: string | null;
+}
+
+interface JobMatchResultItem extends RecommendJobPosting {
+  match_score: number;
+  ai_analysis: string;
+}
+
+function buildUserProfileForRecommend(profile: UserProfile): RecommendUserProfile {
+  const edu = profile.education;
+  return {
+    name: profile.name || "—",
+    email: profile.email || "",
+    phone: profile.phone || "",
+    desired_job: profile.resumeSections?.summary?.slice(0, 80) || profile.experience?.[0]?.role || "직무",
+    educations: [
+      {
+        university: edu?.university ?? "",
+        major: edu?.major ?? "",
+        graduation_year: edu?.graduationYear ?? "",
+        gpa: edu?.gpa ?? "",
+      },
+    ],
+    skills: Array.isArray(profile.skills) ? profile.skills : [],
+    experiences: (profile.experience ?? []).map(
+      (e) => `${e.role} at ${e.company}: ${e.description}`
+    ),
+    certificates: [],
+    projects: (profile.projects ?? []).map((p) => ({
+      name: p.title,
+      description: p.description,
+      tech_stack: p.techStack ?? [],
+    })),
+    awards: [],
+  };
+}
+
+function buildJobPostingFromLocal(job: JobDetail): RecommendJobPosting {
+  return {
+    activityId: String(job.id),
+    sourceUrl: "",
+    title: job.title,
+    companyName: job.company,
+    companyType: job.companyType ?? null,
+    location: job.location,
+    employmentType: [job.type],
+    experienceLevel: [job.experienceLevel],
+    responsibilities: job.responsibilities ?? [],
+    qualifications: [...(job.requirements ?? []), ...(job.preferred ?? [])],
+    description: job.description ?? "",
+    postedAt: job.postedAt ?? null,
+    closingAt: job.deadline ?? null,
+  };
+}
+
+/** AI 직무 적합도: POST /api/jobs/recommend and show match_score + ai_analysis inside job detail main. */
+function JobRecommendSection({ jobPosting }: { jobPosting: RecommendJobPosting }) {
+  const { profile } = useProfile();
+  const [state, setState] = useState<{
+    loading: boolean;
+    result: JobMatchResultItem | null;
+    error: string | null;
+  }>({ loading: false, result: null, error: null });
+
+  useEffect(() => {
+    const userProfile = buildUserProfileForRecommend(profile);
+    setState((s) => ({ ...s, loading: true, error: null }));
+    fetch("/api/jobs/recommend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_profile: userProfile,
+        job_postings: [jobPosting],
+      }),
+    })
+      .then(async (res) => {
+        const data = (await res.json()) as JobMatchResultItem[] | { error?: string };
+        if (!res.ok) {
+          const msg = Array.isArray(data) ? "요청 실패" : (data as { error?: string }).error ?? "요청 실패";
+          throw new Error(msg);
+        }
+        const list = Array.isArray(data) ? data : [];
+        const first = list[0] ?? null;
+        setState({ loading: false, result: first, error: null });
+      })
+      .catch((e: Error) => {
+        setState({ loading: false, result: null, error: e.message });
+      });
+  }, [jobPosting.activityId, jobPosting.title, profile?.name]);
+
+  if (state.loading) {
+    return (
+      <section className="mb-10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-1 h-6 bg-[#2463E9] rounded-full" />
+          <h2 className="text-xl md:text-[22px] font-bold text-slate-900">AI 직무 적합도</h2>
+        </div>
+        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm">
+          <p className="text-slate-500">적합도를 분석하고 있어요…</p>
+          <div className="mt-3 flex gap-1">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#2463E9]" />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#2463E9] [animation-delay:0.2s]" />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#2463E9] [animation-delay:0.4s]" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (state.error) {
+    return (
+      <section className="mb-10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-1 h-6 bg-[#2463E9] rounded-full" />
+          <h2 className="text-xl md:text-[22px] font-bold text-slate-900">AI 직무 적합도</h2>
+        </div>
+        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm">
+          <p className="text-amber-600 text-sm">{state.error}</p>
+        </div>
+      </section>
+    );
+  }
+
+  const r = state.result;
+  if (!r) return null;
+
+  const score = Math.round(r.match_score);
+  const scoreColor = score >= 70 ? "text-[#2463E9]" : score >= 50 ? "text-amber-600" : "text-slate-600";
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-1 h-6 bg-[#2463E9] rounded-full" />
+        <h2 className="text-xl md:text-[22px] font-bold text-slate-900">AI 직무 적합도</h2>
+      </div>
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-4 mb-4">
+          <span className={`text-3xl font-extrabold ${scoreColor}`}>{score}점</span>
+          <span className="text-slate-500 text-sm">/ 100</span>
+        </div>
+        <p className="text-[15px] leading-relaxed text-slate-600 whitespace-pre-line">{r.ai_analysis}</p>
+      </div>
+    </section>
+  );
+}
 
 function readAnalyzeCache(activityId: string): AnalyzedSection[] | null {
   if (typeof window === "undefined" || !activityId) return null;
@@ -147,24 +322,29 @@ function CoffeeChatSection({
   };
   const cleanCompany = shouldFetch ? sanitizeForSearch(companyName!) : "";
   const cleanPosition = shouldFetch ? sanitizeForSearch(position!) : "";
+  const techStackPayload = Array.isArray(techStack) ? techStack.slice(0, 5) : [];
 
   useEffect(() => {
     if (!shouldFetch || !cleanCompany || !cleanPosition) {
       setApiState({ loading: false, data: null, error: null });
       return;
     }
+    const ac = new AbortController();
     setApiState((s) => ({ ...s, loading: true, error: null }));
     fetch("/api/coffee-chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
         company_name: cleanCompany,
         position: cleanPosition,
-        tech_stack: Array.isArray(techStack) ? techStack.slice(0, 5) : [],
+        tech_stack: techStackPayload,
       }),
+      cache: "no-store",
+      signal: ac.signal,
     })
       .then(async (res) => {
         const json = (await res.json()) as CoffeeChatApiResponse & { error?: string };
+        if (ac.signal.aborted) return;
         if (!res.ok) {
           setApiState({ loading: false, data: null, error: json?.error ?? "검색 요청에 실패했어요" });
           return;
@@ -175,15 +355,17 @@ function CoffeeChatSection({
             status: json.status ?? "empty",
             query: json.query,
             message: json.message,
-            results: json.results ?? [],
+            results: Array.isArray(json.results) ? json.results : [],
           },
           error: null,
         });
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err?.name === "AbortError") return;
         setApiState({ loading: false, data: null, error: "검색 중 오류가 났어요" });
       });
-  }, [cleanCompany, cleanPosition, shouldFetch]);
+    return () => ac.abort();
+  }, [cleanCompany, cleanPosition, shouldFetch, techStackPayload.join(",")]);
 
   const useApiResults = shouldFetch && !apiState.loading && apiState.data?.status === "success" && (apiState.data.results?.length ?? 0) > 0;
   const results = useApiResults ? apiState.data!.results! : [];
@@ -332,7 +514,11 @@ function CoffeeChatSection({
             </div>
           ))}
           {shouldFetch && apiState.data?.status === "empty" && (
-            <p className="text-sm text-slate-500">이 회사·직무로 검색된 LinkedIn 프로필이 없어 샘플을 보여드려요.</p>
+            <p className="text-sm text-slate-500">
+              {apiState.data?.message
+                ? `${apiState.data.message} 아래 샘플을 참고해 보세요.`
+                : "이 회사·직무로 검색된 LinkedIn 프로필이 없어 샘플을 보여드려요."}
+            </p>
           )}
         </div>
       )}
@@ -404,6 +590,30 @@ function formatLocation(loc: LinkareerActivityDetail["jobPosting"]["jobLocation"
   const a = loc[0].address;
   const parts = [a.addressRegion, a.addressLocality, a.streetAddress].filter(Boolean);
   return parts.join(" ") || "—";
+}
+
+function buildJobPostingFromLinkareer(detail: LinkareerActivityDetail): RecommendJobPosting {
+  const jp = detail.jobPosting;
+  const org = jp.hiringOrganization;
+  const et = jp.employmentType;
+  const employmentType = Array.isArray(et) ? et : et ? [et] : [];
+  const expRaw = jp.experienceRequirements;
+  const experienceLevel = expRaw == null ? [] : Array.isArray(expRaw) ? expRaw : [expRaw];
+  return {
+    activityId: detail.activityId,
+    sourceUrl: detail.sourceUrl ?? "",
+    title: jp.title ?? "—",
+    companyName: org?.name ?? "—",
+    companyType: detail.companyType ?? null,
+    location: formatLocation(jp.jobLocation),
+    employmentType,
+    experienceLevel,
+    responsibilities: [],
+    qualifications: [],
+    description: jp.description ?? "",
+    postedAt: jp.datePosted ?? null,
+    closingAt: jp.validThrough ?? null,
+  };
 }
 
 /** Analyzed section from analyze API */

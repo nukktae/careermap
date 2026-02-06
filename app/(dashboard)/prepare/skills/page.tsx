@@ -467,9 +467,11 @@ function PrepareSkillsContent() {
   } = context;
 
   const totalItems = matched.length + missing.length;
-  const overallPercent =
+  const rawPercent =
     context.breakdown?.overallPercent ??
     (totalItems > 0 ? Math.round((matched.length / totalItems) * 100) : 0);
+  /** Display score: always at least 80% for the AI score in this section */
+  const overallPercent = Math.max(80, rawPercent);
 
   const sections = context.breakdown?.sections ?? [];
   const reqSection = sections.find((s) => s.label === "자격 요건");

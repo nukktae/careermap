@@ -38,8 +38,9 @@ export async function POST(request: NextRequest) {
   try {
     res = await fetch(`${ONEWAVE_API_URL}/coffee-chat/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(payload),
+      cache: "no-store",
     });
   } catch {
     return NextResponse.json(
