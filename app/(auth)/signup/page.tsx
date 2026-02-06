@@ -37,7 +37,7 @@ export default function SignUpPage() {
         <div className="max-w-lg">
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-8 overflow-hidden">
             <Image
-              src="/assets/logos/logojob.png"
+              src="/assets/logos/logojobja.jpg"
               alt="잡자"
               width={80}
               height={80}
@@ -77,7 +77,7 @@ export default function SignUpPage() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 mb-8">
             <Image
-              src="/assets/logos/logojob.png"
+              src="/assets/logos/logojobja.jpg"
               alt="잡자"
               width={40}
               height={40}

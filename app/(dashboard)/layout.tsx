@@ -65,7 +65,7 @@ export default function DashboardLayout({
             className={`flex items-center gap-2 min-w-0 ${sidebarCollapsed ? "justify-center w-full" : "px-3"}`}
           >
             <Image
-              src="/assets/logos/logojob.png"
+              src="/assets/logos/logojobja.jpg"
               alt="잡자"
               width={32}
               height={32}
@@ -134,7 +134,7 @@ export default function DashboardLayout({
       <header className="fixed top-0 left-0 right-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 lg:hidden z-50">
         <Link href="/dashboard" className="flex items-center gap-2">
           <Image
-            src="/assets/logos/logojob.png"
+            src="/assets/logos/logojobja.jpg"
             alt="잡자"
             width={32}
             height={32}

@@ -14,7 +14,7 @@ export default function OnboardingLayout({
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
               <Image
-                src="/assets/logos/logojob.png"
+                src="/assets/logos/logojobja.jpg"
                 alt="잡자"
                 width={32}
                 height={32}

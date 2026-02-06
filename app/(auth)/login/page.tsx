@@ -31,7 +31,7 @@ export default function LoginPage() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 mb-8">
             <Image
-              src="/assets/logos/logojob.png"
+              src="/assets/logos/logojobja.jpg"
               alt="잡자"
               width={40}
               height={40}
@@ -207,7 +207,7 @@ export default function LoginPage() {
         <div className="max-w-lg text-center text-white">
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-8 overflow-hidden">
             <Image
-              src="/assets/logos/logojob.png"
+              src="/assets/logos/logojobja.jpg"
               alt="잡자"
               width={80}
               height={80}

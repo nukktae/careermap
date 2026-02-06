@@ -12,6 +12,7 @@ import {
   getSkillGapFromJobDetail,
   computeMatchedMissingLines,
   type SkillGapContext,
+  type SkillGapSectionScore,
 } from "@/lib/data/prepare";
 import { LINKAREER_ID_OFFSET } from "@/lib/data/linkareer";
 import { ImpactEffortMatrix } from "@/components/prepare/impact-effort-matrix";
@@ -87,11 +88,11 @@ function useSkillGapContext(jobId: number | null): {
         const company =
           activity?.jobPosting?.hiringOrganization?.name ?? "해당 회사";
         const jobTitle = activity?.jobPosting?.title ?? `채용 #${jobId}`;
-        const sections = analyze?.sections ?? [];
+        const analyzedSections = analyze?.sections ?? [];
         const reqTitle = (t: string) =>
           /자격|요건|필수/.test(t) && !/우대/.test(t);
         const prefTitle = (t: string) => /우대/.test(t);
-        const requirementLines = sections
+        const requirementLines = analyzedSections
           .filter((s) => reqTitle(s.title))
           .flatMap((s) =>
             s.content
@@ -99,7 +100,7 @@ function useSkillGapContext(jobId: number | null): {
               .map((l) => l.trim())
               .filter(Boolean)
           );
-        const preferredLines = sections
+        const preferredLines = analyzedSections
           .filter((s) => prefTitle(s.title))
           .flatMap((s) =>
             s.content
@@ -120,6 +121,35 @@ function useSkillGapContext(jobId: number | null): {
           linesToClassify,
           profileSkills
         );
+        const req = computeMatchedMissingLines(requirementLines, profileSkills);
+        const pref = computeMatchedMissingLines(preferredLines, profileSkills);
+        const reqTotal = req.matched.length + req.missing.length;
+        const prefTotal = pref.matched.length + pref.missing.length;
+        const totalLines = reqTotal + prefTotal;
+        const overallPercent =
+          totalLines > 0
+            ? Math.round(
+                ((req.matched.length + pref.matched.length) / totalLines) * 100
+              )
+            : 0;
+        const breakdownSections: SkillGapSectionScore[] = [];
+        if (reqTotal > 0) {
+          const weight = prefTotal > 0 ? 50 : 100;
+          breakdownSections.push({
+            label: "자격 요건",
+            matched: req.matched.length,
+            total: reqTotal,
+            weightPercent: weight,
+          });
+        }
+        if (prefTotal > 0) {
+          breakdownSections.push({
+            label: "우대 사항",
+            matched: pref.matched.length,
+            total: prefTotal,
+            weightPercent: reqTotal > 0 ? 50 : 100,
+          });
+        }
         setContext({
           company,
           jobTitle,
@@ -127,6 +157,22 @@ function useSkillGapContext(jobId: number | null): {
           preferred: preferredLines,
           matched,
           missing,
+          breakdown:
+            breakdownSections.length > 0
+              ? { overallPercent, sections: breakdownSections }
+              : totalLines > 0
+                ? {
+                    overallPercent,
+                    sections: [
+                      {
+                        label: "요건 충족",
+                        matched: matched.length,
+                        total: matched.length + missing.length,
+                        weightPercent: 100,
+                      },
+                    ],
+                  }
+                : undefined,
         });
       })
       .catch(() => {
@@ -235,6 +281,20 @@ function PrepareSkillsContent() {
 
   const { company, jobTitle, requirements, preferred, matched, missing } = context;
   const hasGap = matched.length > 0 || missing.length > 0;
+  const totalItems = matched.length + missing.length;
+  const overallPercent =
+    context.breakdown?.overallPercent ??
+    (totalItems > 0 ? Math.round((matched.length / totalItems) * 100) : 0);
+  const sections = context.breakdown?.sections ?? (totalItems > 0
+    ? [
+        {
+          label: "요건 충족",
+          matched: matched.length,
+          total: totalItems,
+          weightPercent: 100,
+        },
+      ]
+    : []);
 
   return (
     <div className="space-y-6">
@@ -247,16 +307,56 @@ function PrepareSkillsContent() {
         </p>
       </div>
 
-      {/* Job context card */}
+      {/* Job context card with match % and section bars (like match modal) */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
-        <div className="flex items-center gap-3 p-4 border-b border-border">
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-foreground truncate">
-              {company} · {jobTitle}
-            </p>
-            <p className="text-sm text-foreground-muted">
-              자격 요건 {requirements.length}개 · 우대 {preferred.length}개
-            </p>
+        <div className="flex items-center gap-4 p-4 border-b border-border">
+          <div className="min-w-0 flex-1 flex items-center gap-4">
+            {(overallPercent > 0 || totalItems > 0) && (
+              <div className="relative w-14 h-14 shrink-0">
+                <svg className="w-14 h-14 -rotate-90">
+                  <circle
+                    cx="28"
+                    cy="28"
+                    r="24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    className="text-background-secondary"
+                  />
+                  <circle
+                    cx="28"
+                    cy="28"
+                    r="24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeDasharray={`${overallPercent * 1.51} 151`}
+                    strokeLinecap="round"
+                    className={
+                      overallPercent >= 70
+                        ? "text-success-500"
+                        : overallPercent >= 40
+                          ? "text-warning-500"
+                          : "text-error-500"
+                    }
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-sm font-bold text-foreground">
+                    {overallPercent}%
+                  </span>
+                </div>
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="font-semibold text-foreground truncate">
+                {company} · {jobTitle}
+              </p>
+              <p className="text-sm text-foreground-muted">
+                자격 요건 {requirements.length}개 · 우대 {preferred.length}개
+                {sections.length > 0 && " · 이 점수는 요건과 프로필 매칭으로 계산돼요"}
+              </p>
+            </div>
           </div>
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/jobs/${validJobId}`}>
@@ -264,6 +364,37 @@ function PrepareSkillsContent() {
             </Link>
           </Button>
         </div>
+
+        {/* Section progress bars (like match modal) */}
+        {sections.length > 0 && (
+          <div className="px-4 pb-4 space-y-4">
+            {sections.map((sec) => (
+              <div key={sec.label} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">
+                    {sec.label}
+                    {sec.weightPercent != null && (
+                      <span className="text-foreground-muted font-normal">
+                        {" "}({sec.weightPercent}%)
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {sec.matched}/{sec.total}
+                  </span>
+                </div>
+                <div className="h-2 bg-background-secondary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary-500 rounded-full transition-all"
+                    style={{
+                      width: `${sec.total > 0 ? (sec.matched / sec.total) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         {(requirements.length > 0 || preferred.length > 0) && (
           <ul className="px-4 pb-4 space-y-2 text-sm text-foreground-secondary">
             {requirements.slice(0, 5).map((r, i) => (

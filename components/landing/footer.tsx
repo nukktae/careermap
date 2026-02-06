@@ -48,7 +48,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <Image
-                src="/assets/logos/logojob.png"
+                src="/assets/logos/logojobja.jpg"
                 alt="잡자"
                 width={32}
                 height={32}

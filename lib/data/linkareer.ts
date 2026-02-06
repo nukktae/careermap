@@ -30,6 +30,16 @@ export interface LinkareerResponse {
 
 export const LINKAREER_ID_OFFSET = 100000;
 
+/**
+ * Deterministic match % for Linkareer jobs (no resume data): "도전 목표" range 40–59%.
+ * Same job always gets the same value.
+ */
+function linkareerPlaceholderMatch(nodeId: string): number {
+  let h = 0;
+  for (let i = 0; i < nodeId.length; i++) h = (h * 31 + nodeId.charCodeAt(i)) >>> 0;
+  return 40 + (h % 20); // 40–59
+}
+
 /** Map a Linkareer node to our Job type for display in the same grid. */
 export function mapLinkareerNodeToJob(node: LinkareerActivityNode): Job {
   const id = LINKAREER_ID_OFFSET + parseInt(node.id, 10) || 0;
@@ -38,6 +48,7 @@ export function mapLinkareerNodeToJob(node: LinkareerActivityNode): Job {
     : node.regions?.[0]?.name ?? "";
   const categoryNames = (node.categories ?? []).map((c) => c.name).slice(0, 5);
   const jobTypeLabel = (node.jobTypes ?? []).includes("INTERN") ? "인턴" : "채용";
+  const match = linkareerPlaceholderMatch(node.id);
 
   return {
     id,
@@ -49,7 +60,7 @@ export function mapLinkareerNodeToJob(node: LinkareerActivityNode): Job {
     typeValue: "intern",
     experience: "신입",
     experienceLevel: "신입",
-    match: 0,
+    match,
     badge: "stretch",
     logo: (node.organizationName ?? "L").charAt(0),
     logoUrl: node.logoImage?.url,

@@ -229,6 +229,15 @@ export function getSkillGapSkills(): SkillGapSkill[] {
   return [...SKILL_GAP_SKILLS].sort((a, b) => b.impactPercent - a.impactPercent);
 }
 
+/** Section score for percentage display (e.g. 자격 요건 2/3, 우대 1/2). */
+export interface SkillGapSectionScore {
+  label: string;
+  matched: number;
+  total: number;
+  /** Display weight e.g. 50 for "50%" in "자격 요건 (50%)" */
+  weightPercent?: number;
+}
+
 /** Job-contextual skill gap: requirements from the job vs what the user has. */
 export interface SkillGapContext {
   company: string;
@@ -241,6 +250,11 @@ export interface SkillGapContext {
   matched: string[];
   /** Skills to develop for this job */
   missing: string[];
+  /** Optional: section scores for progress bars and overall % (like match modal). */
+  breakdown?: {
+    overallPercent: number;
+    sections: SkillGapSectionScore[];
+  };
 }
 
 /**
@@ -254,13 +268,31 @@ export function getSkillGapFromJobDetail(job: {
   matchedSkills: string[];
   missingSkills: string[];
 }): SkillGapContext {
+  const matched = job.matchedSkills ?? [];
+  const missing = job.missingSkills ?? [];
+  const total = matched.length + missing.length;
+  const overallPercent = total > 0 ? Math.round((matched.length / total) * 100) : 0;
   return {
     company: job.company,
     jobTitle: job.title,
     requirements: job.requirements ?? [],
     preferred: job.preferred ?? [],
-    matched: job.matchedSkills ?? [],
-    missing: job.missingSkills ?? [],
+    matched,
+    missing,
+    breakdown:
+      total > 0
+        ? {
+            overallPercent,
+            sections: [
+              {
+                label: "기술 스킬",
+                matched: matched.length,
+                total,
+                weightPercent: 100,
+              },
+            ],
+          }
+        : undefined,
   };
 }
 

@@ -21,7 +21,7 @@ import {
   ExternalLink,
   ImageIcon,
 } from "lucide-react";
-import { getJobById, getSimilarJobs } from "@/lib/data/jobs";
+import { getJobById } from "@/lib/data/jobs";
 import { useSavedJobs } from "@/lib/saved-jobs-context";
 import { MatchExplanationModal } from "@/components/jobs/match-explanation-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -181,6 +181,9 @@ function LinkareerJobDetailView({
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [showOriginalImage, setShowOriginalImage] = useState(false);
+  const [textAnalyzedSections, setTextAnalyzedSections] = useState<AnalyzedSection[] | null>(null);
+  const [textAnalyzeLoading, setTextAnalyzeLoading] = useState(false);
+  const [textAnalyzeError, setTextAnalyzeError] = useState<string | null>(null);
 
   const fetchAnalyze = () => {
     if (!detail.detailImageUrl || !activityId) return;
@@ -218,6 +221,34 @@ function LinkareerJobDetailView({
         setAnalyzedSections(null);
       })
       .finally(() => setAnalyzeLoading(false));
+  };
+
+  const fetchTextAnalyze = () => {
+    const raw = jp.description?.trim();
+    if (!raw) return;
+    setTextAnalyzeLoading(true);
+    setTextAnalyzeError(null);
+    fetch("/api/analyze-job-text", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: raw }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = (await res.json()) as { error?: string };
+          throw new Error(data?.error ?? "분석에 실패했어요");
+        }
+        return res.json() as Promise<{ sections?: AnalyzedSection[] }>;
+      })
+      .then((data) => {
+        const list = data.sections ?? [];
+        setTextAnalyzedSections(Array.isArray(list) ? list : []);
+      })
+      .catch((e: Error) => {
+        setTextAnalyzeError(e.message);
+        setTextAnalyzedSections(null);
+      })
+      .finally(() => setTextAnalyzeLoading(false));
   };
 
   useEffect(() => {
@@ -313,12 +344,9 @@ function LinkareerJobDetailView({
         </div>
 
         <Tabs defaultValue="intro" className="mb-6">
-          <TabsList className="w-full grid grid-cols-3 rounded-xl bg-background-secondary/50 p-1 h-auto">
+          <TabsList className="w-full grid grid-cols-2 rounded-xl bg-background-secondary/50 p-1 h-auto">
             <TabsTrigger value="intro" className="rounded-lg py-2.5 text-sm">
               상세 정보
-            </TabsTrigger>
-            <TabsTrigger value="similar" className="rounded-lg py-2.5 text-sm">
-              관련 채용
             </TabsTrigger>
             <TabsTrigger value="coffee" className="rounded-lg py-2.5 text-sm">
               커피챗
@@ -337,9 +365,64 @@ function LinkareerJobDetailView({
 
               <TabsContent value="detail" className="mt-0">
                 {!detail.detailImageUrl && (
-                  <p className="text-foreground-secondary whitespace-pre-line leading-relaxed">
-                    {jp.description ?? "—"}
-                  </p>
+                  <>
+                    {textAnalyzedSections && textAnalyzedSections.length > 0 ? (
+                      <div className="space-y-4">
+                        {textAnalyzedSections.map((section, i) => (
+                          <div
+                            key={i}
+                            className="rounded-xl border border-border bg-card p-5 shadow-sm"
+                          >
+                            <h3 className="font-semibold text-foreground mb-3">
+                              {section.title}
+                            </h3>
+                            <p className="text-foreground-secondary whitespace-pre-line leading-relaxed text-sm">
+                              {section.content}
+                            </p>
+                          </div>
+                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={fetchTextAnalyze}
+                          disabled={textAnalyzeLoading}
+                        >
+                          {textAnalyzeLoading ? "다시 분석 중…" : "다시 정리하기"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        {textAnalyzeLoading && (
+                          <div className="rounded-xl bg-background-secondary/30 py-12 text-center mb-4">
+                            <p className="text-foreground-secondary">AI가 공고를 정리하고 있어요…</p>
+                            <div className="mt-3 flex justify-center gap-1">
+                              <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500" />
+                              <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500 [animation-delay:0.2s]" />
+                              <span className="h-2 w-2 animate-pulse rounded-full bg-primary-500 [animation-delay:0.4s]" />
+                            </div>
+                          </div>
+                        )}
+                        {!textAnalyzeLoading && (
+                          <>
+                            <p className="text-foreground-secondary whitespace-pre-line leading-relaxed mb-4">
+                              {jp.description ?? "—"}
+                            </p>
+                            {jp.description?.trim() && (
+                              <Button
+                                onClick={fetchTextAnalyze}
+                                disabled={textAnalyzeLoading}
+                              >
+                                AI로 정리하기
+                              </Button>
+                            )}
+                            {textAnalyzeError && (
+                              <p className="text-sm text-destructive mt-2">{textAnalyzeError}</p>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </>
                 )}
                 {detail.detailImageUrl && (
                   <>
@@ -367,9 +450,12 @@ function LinkareerJobDetailView({
                       </div>
                     )}
                     {!analyzeLoading && analyzedSections && analyzedSections.length > 0 && !showOriginalImage && (
-                      <div className="space-y-6">
+                      <div className="space-y-4">
                         {analyzedSections.map((section, i) => (
-                          <div key={i} className="rounded-xl bg-background-secondary/30 p-5">
+                          <div
+                            key={i}
+                            className="rounded-xl border border-border bg-card p-5 shadow-sm"
+                          >
                             <h3 className="font-semibold text-foreground mb-3">
                               {section.title}
                             </h3>
@@ -469,12 +555,6 @@ function LinkareerJobDetailView({
                 </dl>
               </TabsContent>
             </Tabs>
-          </TabsContent>
-
-          <TabsContent value="similar" className="mt-5">
-            <div className="rounded-xl bg-background-secondary/30 p-8 text-center border border-dashed border-border">
-              <p className="text-foreground-secondary">관련 채용 정보를 불러오고 있습니다...</p>
-            </div>
           </TabsContent>
 
           <TabsContent value="coffee" className="mt-6">
@@ -652,7 +732,6 @@ export default function JobDetailPage() {
     );
   }
 
-  const similarJobs = getSimilarJobs(job.id);
   const saved = isSaved(job.id);
 
   return (
@@ -785,12 +864,9 @@ export default function JobDetailPage() {
         />
 
         <Tabs defaultValue="intro" className="mb-8">
-          <TabsList className="w-full grid grid-cols-3 rounded-xl bg-background-secondary/50 p-1 h-auto">
+          <TabsList className="w-full grid grid-cols-2 rounded-xl bg-background-secondary/50 p-1 h-auto">
             <TabsTrigger value="intro" className="rounded-lg py-2.5 text-sm">
               상세 정보
-            </TabsTrigger>
-            <TabsTrigger value="similar" className="rounded-lg py-2.5 text-sm">
-              관련 채용
             </TabsTrigger>
             <TabsTrigger value="coffee" className="rounded-lg py-2.5 text-sm">
               커피챗
@@ -900,31 +976,6 @@ export default function JobDetailPage() {
                   </ul>
                 )}
               </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="similar" className="mt-6">
-            <div className="space-y-3">
-              {similarJobs.map((similar) => (
-                <Link
-                  key={similar.id}
-                  href={`/jobs/${similar.id}`}
-                  className="flex items-center gap-4 p-4 rounded-xl border border-border hover:bg-background-secondary transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-background-secondary flex items-center justify-center text-foreground font-bold">
-                    {similar.logo}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-foreground">{similar.title}</h3>
-                    <p className="text-sm text-foreground-secondary">
-                      {similar.company}
-                    </p>
-                  </div>
-                  <span className="text-sm font-semibold text-foreground">
-                    {similar.match}%
-                  </span>
-                </Link>
-              ))}
             </div>
           </TabsContent>
 
