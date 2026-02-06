@@ -216,13 +216,6 @@ export default function DashboardLayout({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div
-            className="p-2 text-foreground-muted rounded-lg cursor-default relative"
-            aria-hidden
-          >
-            <AppIcon name="notification" className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-error-500 rounded-full" />
-          </div>
           <Link
             href="/settings"
             className="p-2 text-foreground-secondary hover:text-foreground rounded-lg hover:bg-background-secondary"

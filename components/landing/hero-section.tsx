@@ -76,7 +76,7 @@ export function HeroSection() {
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground-secondary">지원 가능</span>
+                        <span className="text-sm text-foreground-secondary">적정 지원</span>
                         <span className="text-sm font-semibold text-success-600">3개</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -84,7 +84,7 @@ export function HeroSection() {
                         <span className="text-sm font-semibold text-warning-600">8개</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground-secondary">도전 목표</span>
+                        <span className="text-sm text-foreground-secondary">지원 위험</span>
                         <span className="text-sm font-semibold text-error-600">5개</span>
                       </div>
                     </div>

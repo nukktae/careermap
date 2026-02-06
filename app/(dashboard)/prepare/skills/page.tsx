@@ -222,10 +222,10 @@ function PrepareSkillsContent() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground mb-1">
-            스킬 갭
+            이 직무와의 스킬 갭
           </h1>
           <p className="text-foreground-secondary">
-            채용 상세에서 &quot;이 채용 준비하기&quot;를 누르면 이 직무와의 스킬 갭을 볼 수 있어요
+            채용 상세에서 &quot;이 채용 준비하기&quot;를 누르면 이 직무와의 스킬 갭을 볼 수 있어요. 위에서 저장한 채용을 선택하거나 아래에서 채용 찾기로 이동하세요.
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-8 text-center">
@@ -262,7 +262,7 @@ function PrepareSkillsContent() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground mb-1">
-          스킬 갭
+          이 직무와의 스킬 갭
         </h1>
         <p className="text-foreground-secondary">
           이 직무와 내 프로필을 비교했어요

@@ -29,7 +29,7 @@ function getBadgeStyles(badge: MatchBadge): { wrapper: string; label: string } {
     case "apply":
       return {
         wrapper: "bg-primary-badge text-primary-badge-text",
-        label: "지원 가능",
+        label: "적정 지원",
       };
     case "prep":
       return {
@@ -39,7 +39,7 @@ function getBadgeStyles(badge: MatchBadge): { wrapper: string; label: string } {
     case "stretch":
       return {
         wrapper: "bg-neutral-badge text-neutral-badge-text",
-        label: "도전 목표",
+        label: "지원 위험",
       };
     default:
       return { wrapper: "", label: "" };

@@ -31,7 +31,7 @@ export interface LinkareerResponse {
 export const LINKAREER_ID_OFFSET = 100000;
 
 /**
- * Deterministic match % for Linkareer jobs (no resume data): "도전 목표" range 40–59%.
+ * Deterministic match % for Linkareer jobs (no resume data): "지원 위험" range 40–59%.
  * Same job always gets the same value.
  */
 function linkareerPlaceholderMatch(nodeId: string): number {

@@ -33,6 +33,19 @@ import { LINKAREER_ID_OFFSET } from "@/lib/data/linkareer";
 
 const ANALYZE_CACHE_KEY_PREFIX = "careermap-job-analyze-";
 
+function readAnalyzeCache(activityId: string): AnalyzedSection[] | null {
+  if (typeof window === "undefined" || !activityId) return null;
+  try {
+    const raw = localStorage.getItem(`${ANALYZE_CACHE_KEY_PREFIX}${activityId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { sections?: AnalyzedSection[] };
+    if (Array.isArray(parsed?.sections) && parsed.sections.length > 0) return parsed.sections;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 /** 커피챗 프로필 목업 (API 결과 없을 때 폴백) */
 const COFFEECHAT_MENTORS = [
   { name: "이지연 (Sophia Lee)", badge: "RECRUITER", role: "Vinsign 디자인/프로덕트 채용 총괄", bio: "채용 프로세스 및 처우 관련 문의", initial: "S", color: "bg-emerald-100 text-emerald-700", image: "/assets/coffeechat/mentor-sophia.png" },
@@ -45,6 +58,8 @@ interface CoffeeChatResult {
   name_and_title: string;
   profile_url: string;
   snippet: string;
+  profile_image_url?: string;
+  suggested_questions?: string[];
 }
 
 interface CoffeeChatApiResponse {
@@ -57,18 +72,26 @@ interface CoffeeChatApiResponse {
 function MentorAvatar({
   mentor,
   initial,
+  imageUrl,
+  alt,
 }: {
   mentor?: (typeof COFFEECHAT_MENTORS)[number];
   initial?: string;
+  imageUrl?: string;
+  alt?: string;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const useImage = mentor?.image && !imgFailed;
+  const useMentorImage = mentor?.image && !imgFailed;
+  const useUrlImage = imageUrl && !imgFailed;
+  const useImage = useMentorImage && mentor ? mentor.image : useUrlImage ? imageUrl : null;
   const letter = initial ?? mentor?.initial ?? "?";
   const bgColor = mentor?.color ?? "bg-slate-100 text-slate-600";
   return (
     <div className={`relative w-20 h-20 min-w-20 min-h-20 rounded-4xl overflow-hidden shrink-0 flex items-center justify-center ${useImage ? "bg-slate-100" : bgColor}`}>
-      {useImage && mentor ? (
+      {useMentorImage && mentor ? (
         <img src={mentor.image} alt={mentor.name} className="absolute inset-0 w-full h-full object-cover object-center block" onError={() => setImgFailed(true)} />
+      ) : useUrlImage && imageUrl ? (
+        <img src={imageUrl} alt={alt ?? ""} className="absolute inset-0 w-full h-full object-cover object-center block" onError={() => setImgFailed(true)} />
       ) : (
         <span className="text-3xl font-bold">{letter}</span>
       )}
@@ -83,6 +106,19 @@ const LinkedInIcon = ({ className }: { className?: string }) => (
     <circle cx="4" cy="4" r="2" />
   </svg>
 );
+
+/** Build 2 personalized fallback questions from contact name/title and snippet when API returns empty. */
+function getPersonalizedFallbackQuestions(contact: { name_and_title?: string; snippet?: string }): string[] {
+  const title = (contact.name_and_title ?? "").trim();
+  const snippet = (contact.snippet ?? "").trim();
+  const rolePart = title.includes(" - ") ? title.split(" - ").pop()?.trim() || title : title;
+  const snippetLead = snippet.split(/[·….]/)[0]?.trim().slice(0, 40) || "";
+  const roleHint = rolePart || snippetLead || "현직자";
+  return [
+    `${roleHint} 관점에서 일상 업무나 팀 문화를 여쭤보세요.`,
+    "이 직무에서 중요하게 보는 역량과 커리어 조언을 들을 수 있을까요?",
+  ];
+}
 
 /** Coffee chat tab: onewave searchService 연동. companyName + position 있으면 API 호출 후 LinkedIn 결과 표시, 없거나 실패 시 목업 표시 */
 function CoffeeChatSection({
@@ -99,6 +135,7 @@ function CoffeeChatSection({
     data: CoffeeChatApiResponse | null;
     error: string | null;
   }>({ loading: false, data: null, error: null });
+  const [suggestions, setSuggestions] = useState<string[][]>([]);
 
   const shouldFetch = Boolean(companyName?.trim() && position?.trim());
 
@@ -150,6 +187,37 @@ function CoffeeChatSection({
 
   const useApiResults = shouldFetch && !apiState.loading && apiState.data?.status === "success" && (apiState.data.results?.length ?? 0) > 0;
   const results = useApiResults ? apiState.data!.results! : [];
+  const resultsLength = apiState.data?.results?.length ?? 0;
+  const resultsQuery = apiState.data?.query ?? "";
+
+  useEffect(() => {
+    if (!useApiResults || resultsLength === 0 || !cleanCompany || !cleanPosition) {
+      setSuggestions([]);
+      return;
+    }
+    const contacts = apiState.data!.results!;
+    setSuggestions([]);
+    fetch("/api/coffee-chat/suggest-questions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        company_name: cleanCompany,
+        position: cleanPosition,
+        contacts: contacts.map((r) => ({
+          name_and_title: r.name_and_title,
+          snippet: r.snippet,
+        })),
+      }),
+    })
+      .then(async (res) => {
+        const json = (await res.json()) as { suggestions?: string[][] };
+        if (res.ok && Array.isArray(json.suggestions)) {
+          setSuggestions(json.suggestions);
+        }
+      })
+      .catch(() => {});
+  }, [useApiResults, cleanCompany, cleanPosition, resultsLength, resultsQuery]);
+
   const showMock = !useApiResults;
 
   return (
@@ -185,37 +253,56 @@ function CoffeeChatSection({
           {results.map((contact, i) => {
             const nameAndTitle = contact.name_and_title ?? "";
             const initial = nameAndTitle.trim().charAt(0) || "?";
+            const questionList = suggestions[i];
+            const hasSuggestions = Array.isArray(questionList) && questionList.length > 0;
+            const displayQuestions = hasSuggestions ? questionList : getPersonalizedFallbackQuestions(contact);
             return (
               <div
                 key={`${contact.profile_url}-${i}`}
-                className="flex flex-col sm:flex-row items-start sm:items-center gap-6 p-6 rounded-3xl border border-slate-100 bg-white shadow-sm"
+                className="flex flex-col gap-6 p-6 rounded-3xl border border-slate-100 bg-white shadow-sm"
               >
-                <div className="relative w-20 h-20 shrink-0">
-                  <MentorAvatar initial={initial} />
-                  <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#0077B5] flex items-center justify-center text-white border-2 border-white pointer-events-none">
-                    <LinkedInIcon className="w-3.5 h-3.5" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                  <div className="relative w-20 h-20 shrink-0">
+                    <MentorAvatar
+                      initial={initial}
+                      imageUrl={contact.profile_image_url}
+                      alt={nameAndTitle || "LinkedIn 프로필"}
+                    />
+                    <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#0077B5] flex items-center justify-center text-white border-2 border-white pointer-events-none">
+                      <LinkedInIcon className="w-3.5 h-3.5" />
+                    </div>
                   </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <h4 className="text-xl font-bold text-slate-900">{nameAndTitle || "LinkedIn 프로필"}</h4>
+                    <p className="text-sm text-slate-500 line-clamp-2">{contact.snippet || "—"}</p>
+                  </div>
+                  <a
+                    href={contact.profile_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-[#0077B5] hover:bg-[#006097] text-white px-6 h-12 font-semibold transition-colors"
+                  >
+                    <LinkedInIcon className="mr-2" />
+                    프로필 확인하기
+                  </a>
                 </div>
-                <div className="flex-1 min-w-0 space-y-1">
-                  <h4 className="text-xl font-bold text-slate-900">{nameAndTitle || "LinkedIn 프로필"}</h4>
-                  <p className="text-sm text-slate-500 line-clamp-2">{contact.snippet || "—"}</p>
-                </div>
-                <a
-                  href={contact.profile_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-[#0077B5] hover:bg-[#006097] text-white px-6 h-12 font-semibold transition-colors"
-                >
-                  <LinkedInIcon className="mr-2" />
-                  프로필 확인하기
-                </a>
+                {displayQuestions.length > 0 && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">이런 점 물어보기</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-slate-700">
+                      {displayQuestions.map((q, j) => (
+                        <li key={j}>{q}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
 
-      {showMock && (
+      {showMock && !apiState.loading && (
         <div className="space-y-4">
           {COFFEECHAT_MENTORS.map((mentor, i) => (
             <div
@@ -441,9 +528,9 @@ function JobDetailLayout({
 // ----- Local job (JobDetail) view -----
 function getBadgeLabel(badge: string): string {
   switch (badge) {
-    case "apply": return "지원 가능";
+    case "apply": return "적정 지원";
     case "prep": return "준비 필요";
-    case "stretch": return "도전 목표";
+    case "stretch": return "지원 위험";
     default: return "채용";
   }
 }
@@ -711,11 +798,14 @@ function LinkareerJobDetailView({
   const org = jp.hiringOrganization;
   const logoUrl = org?.logo || jp.image?.contentUrl;
   const sourceUrl = detail.sourceUrl;
+  const homepageUrl = org?.sameAs?.trim() || null;
   const location = formatLocation(jp.jobLocation);
   const validThrough = jp.validThrough;
   const dDay = validThrough ? getDDay(validThrough.split("T")[0]) : null;
 
-  const [analyzedSections, setAnalyzedSections] = useState<AnalyzedSection[] | null>(null);
+  const [analyzedSections, setAnalyzedSections] = useState<AnalyzedSection[] | null>(() =>
+    readAnalyzeCache(activityId)
+  );
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [showOriginalImage, setShowOriginalImage] = useState(false);
@@ -765,7 +855,18 @@ function LinkareerJobDetailView({
         return res.json() as Promise<{ sections?: AnalyzedSection[] }>;
       })
       .then((data) => {
-        setTextAnalyzedSections(Array.isArray(data.sections) ? data.sections : []);
+        const list = Array.isArray(data.sections) ? data.sections : [];
+        setTextAnalyzedSections(list);
+        if (activityId && list.length > 0) {
+          try {
+            localStorage.setItem(
+              `${ANALYZE_CACHE_KEY_PREFIX}${activityId}`,
+              JSON.stringify({ sections: list, fetchedAt: Date.now() })
+            );
+          } catch {
+            /* ignore */
+          }
+        }
       })
       .catch((e: Error) => {
         setTextAnalyzeError(e.message);
@@ -776,16 +877,11 @@ function LinkareerJobDetailView({
 
   useEffect(() => {
     if (!activityId) return;
-    try {
-      const raw = localStorage.getItem(`${ANALYZE_CACHE_KEY_PREFIX}${activityId}`);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { sections?: AnalyzedSection[] };
-        if (Array.isArray(parsed.sections) && parsed.sections.length > 0) {
-          setAnalyzedSections(parsed.sections);
-          return;
-        }
-      }
-    } catch { /* ignore */ }
+    const cached = readAnalyzeCache(activityId);
+    if (cached?.length) {
+      setAnalyzedSections(cached);
+      return;
+    }
     fetchAnalyze();
   }, [activityId]);
 
@@ -916,9 +1012,9 @@ function LinkareerJobDetailView({
           </a>
         </Button>
         <Button asChild variant="outline" className="w-full h-[60px] border-slate-200 text-slate-700 rounded-2xl font-bold text-base hover:bg-slate-50">
-          <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
+          <a href={homepageUrl ?? sourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
             <ExternalLink className="w-5 h-5" />
-            링커리어에서 지원하기
+            {homepageUrl ? "홈페이지" : "링커리어에서 지원하기"}
           </a>
         </Button>
         <Button asChild variant="outline" className="w-full h-[60px] border-slate-200 text-slate-700 rounded-2xl font-bold text-base hover:bg-slate-50">

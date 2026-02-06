@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, SlidersHorizontal } from "lucide-react";
-import { getJobs, filterJobs, DEFAULT_JOB_FILTERS, type JobFiltersState } from "@/lib/data/jobs";
+import { getJobs, filterJobs, DEFAULT_JOB_FILTERS, enrichJobWithProfileMatch, type JobFiltersState } from "@/lib/data/jobs";
 import {
   mapLinkareerNodeToJob,
-  LINKAREER_ID_OFFSET,
   type LinkareerResponse,
 } from "@/lib/data/linkareer";
+import { getProfileSkillsForMatch } from "@/lib/data/prepare";
+import { useProfile } from "@/lib/hooks/use-profile";
 import { useSavedJobs } from "@/lib/saved-jobs-context";
 import { JobCard } from "@/components/jobs/job-card";
 import { JobFiltersModal } from "@/components/jobs/job-filters-modal";
@@ -29,6 +30,8 @@ function countActiveFilters(f: JobFiltersState): number {
 
 export default function JobsPage() {
   const jobs = getJobs();
+  const { profile } = useProfile();
+  const profileSkills = useMemo(() => getProfileSkillsForMatch(profile), [profile]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<JobFiltersState>(DEFAULT_JOB_FILTERS);
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
@@ -56,7 +59,11 @@ export default function JobsPage() {
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.company.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const displayJobs = [...filteredJobs, ...linkareerSearchFiltered];
+  const displayJobs = useMemo(() => {
+    const combined = [...linkareerSearchFiltered, ...filteredJobs];
+    if (profileSkills.length === 0) return combined;
+    return combined.map((job) => enrichJobWithProfileMatch(job, profileSkills));
+  }, [linkareerSearchFiltered, filteredJobs, profileSkills]);
   const activeFilterCount = countActiveFilters(filters);
 
   function jobHref(job: Job): string {

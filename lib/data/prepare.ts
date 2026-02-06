@@ -363,6 +363,23 @@ export function computeMatchedMissing(
   return { matched, missing };
 }
 
+/**
+ * Build a single list of profile skills for job matching.
+ * Uses profile.skills and resumeSections.skills (e.g. from mycv.json load).
+ */
+export function getProfileSkillsForMatch(profile: {
+  skills?: string[];
+  resumeSections?: Record<string, string>;
+}): string[] {
+  const fromArray = profile.skills ?? [];
+  const fromSections = (profile.resumeSections?.skills ?? "")
+    .split(/[,،、\n]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  const combined = [...fromArray, ...fromSections];
+  return [...new Set(combined)];
+}
+
 export function getResumeOptimizerDefaults(): typeof RESUME_OPTIMIZER_SAMPLES {
   return RESUME_OPTIMIZER_SAMPLES;
 }

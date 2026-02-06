@@ -25,9 +25,9 @@ import {
 
 const MATCH_LEVEL_OPTIONS: { value: "all" | "apply" | "prep" | "stretch"; label: string }[] = [
   { value: "all", label: "전체" },
-  { value: "apply", label: "지원 가능 (85%+)" },
+  { value: "apply", label: "적정 지원 (85%+)" },
   { value: "prep", label: "준비 필요 (60-84%)" },
-  { value: "stretch", label: "도전 목표 (<60%)" },
+  { value: "stretch", label: "지원 위험 (<60%)" },
 ];
 
 const JOB_TYPE_OPTIONS: { value: JobTypeValue; label: string }[] = [

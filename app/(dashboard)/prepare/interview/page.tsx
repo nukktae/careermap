@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/ui/app-icon";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Target } from "lucide-react";
 import { getJobs } from "@/lib/data/jobs";
 import { getInterviewPrep } from "@/lib/data/prepare";
 import {
@@ -20,6 +21,10 @@ function PrepareInterviewContent() {
   const jobs = getJobs();
   const jobParam = searchParams.get("job");
   const urlJobId = jobParam ? parseInt(jobParam, 10) : null;
+  const validJobId =
+    jobParam != null && urlJobId != null && !Number.isNaN(urlJobId)
+      ? urlJobId
+      : null;
   const initialJobId =
     urlJobId != null &&
     !Number.isNaN(urlJobId) &&
@@ -30,6 +35,30 @@ function PrepareInterviewContent() {
   const numId = jobId ? parseInt(jobId, 10) : 1;
   const data = getInterviewPrep(Number.isNaN(numId) ? 1 : numId);
   const [expandedPractice, setExpandedPractice] = useState<number | null>(null);
+
+  if (!validJobId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-1">
+            면접 준비
+          </h1>
+          <p className="text-foreground-secondary">
+            질문 유형, 스토리 매핑, 회사 문화, 한국형 면접 포맷을 확인하세요. 위에서 저장한 채용을 선택하거나 아래에서 채용 찾기로 이동하세요.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-8 text-center">
+          <Target className="mx-auto h-12 w-12 text-foreground-muted mb-4" />
+          <p className="text-foreground-secondary mb-4">
+            비교할 채용을 선택해 주세요
+          </p>
+          <Button asChild>
+            <Link href="/jobs">채용 찾기</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

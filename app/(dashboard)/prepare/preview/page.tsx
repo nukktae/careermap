@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { getMyCvFullText } from "@/lib/data/mycv";
 import { getFixedCvSections, fixedcvRaw } from "@/lib/data/fixedcv";
 import { MYCV_SECTION_ORDER, MYCV_SECTION_LABELS } from "@/lib/data/mycv";
+import { Target } from "lucide-react";
 
 function OptimizedCvCard({ className }: { className?: string }) {
   const sections = useMemo(() => getFixedCvSections(), []);
@@ -44,13 +47,45 @@ function OptimizedCvCard({ className }: { className?: string }) {
   );
 }
 
-export default function PreparePreviewPage() {
+function PreparePreviewContent() {
+  const searchParams = useSearchParams();
+  const jobParam = searchParams.get("job");
+  const urlJobId = jobParam ? parseInt(jobParam, 10) : null;
+  const validJobId =
+    jobParam != null && urlJobId != null && !Number.isNaN(urlJobId)
+      ? urlJobId
+      : null;
+
   const fullText = useMemo(() => getMyCvFullText(), []);
   const original = fullText;
   const [activeTab, setActiveTab] = useState("original");
 
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+
+  if (!validJobId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-1">
+            이력서 미리보기
+          </h1>
+          <p className="text-foreground-secondary">
+            원본과 최적화 버전을 비교하고 PDF로 내려받으세요. 위에서 저장한 채용을 선택하거나 아래에서 채용 찾기로 이동하세요.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-8 text-center">
+          <Target className="mx-auto h-12 w-12 text-foreground-muted mb-4" />
+          <p className="text-foreground-secondary mb-4">
+            비교할 채용을 선택해 주세요
+          </p>
+          <Button asChild>
+            <Link href="/jobs">채용 찾기</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleDownloadPdf = async () => {
     if (typeof window === "undefined") return;
@@ -158,5 +193,13 @@ export default function PreparePreviewPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function PreparePreviewPage() {
+  return (
+    <Suspense fallback={<div className="space-y-6"><div className="h-8 w-48 animate-pulse rounded-lg bg-background-secondary" /><div className="h-64 animate-pulse rounded-xl bg-background-secondary" /></div>}>
+      <PreparePreviewContent />
+    </Suspense>
   );
 }

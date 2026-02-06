@@ -1,14 +1,94 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { FileText, Eye, Download } from "lucide-react";
+import { FileText, Eye, Download, FileJson } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useProfile } from "@/lib/hooks/use-profile";
 import { getResumeSectionsForDisplay } from "@/lib/data/profile";
 import { RESUME_TEMPLATE_ABOUT_ME } from "@/lib/data/prepare";
+import MYCV_JSON from "@/lib/data/mycv.json";
+
+/** mycv.json shape (careermap/lib/data/mycv.json) */
+interface MyCvProfile {
+  name_kr?: string;
+  name_en?: string;
+  title?: string;
+  summary?: string;
+  contact?: { phone?: string; email?: string; website?: string; github?: string };
+}
+interface MyCvExperience {
+  role?: string;
+  company?: string;
+  location?: string;
+  period?: { start?: string; end?: string };
+  highlights?: string[];
+}
+interface MyCvProject {
+  role?: string;
+  project?: string;
+  location?: string;
+  period?: { start?: string; end?: string };
+  details?: string[];
+}
+interface MyCvEducation {
+  university?: string;
+  major?: string;
+  double_major?: string;
+  period?: { start?: string; end?: string };
+}
+interface MyCvSkills {
+  [category: string]: string[] | undefined;
+}
+interface MyCvData {
+  profile?: MyCvProfile;
+  experience?: MyCvExperience[];
+  projects_and_activities?: MyCvProject[];
+  education?: MyCvEducation;
+  skills?: MyCvSkills;
+}
+
+function formatPeriod(p: { start?: string; end?: string } | undefined): string {
+  if (!p) return "";
+  const s = p.start ?? "";
+  const e = (p.end ?? "").toUpperCase() === "PRESENT" ? "현재" : (p.end ?? "");
+  return [s, e].filter(Boolean).join(" – ");
+}
+
+function mycvToResumeSections(data: MyCvData): Record<string, string> {
+  const profile = data.profile ?? {};
+  const summary = (profile.summary ?? "").trim();
+
+  const edu = data.education;
+  const education =
+    edu?.university || edu?.major || edu?.double_major || edu?.period
+      ? [edu.university, edu.major, edu.double_major, formatPeriod(edu.period)].filter(Boolean).join(", ")
+      : "";
+
+  const experience = (data.experience ?? [])
+    .map((x) => {
+      const line = `${x.company ?? ""} | ${x.role ?? ""} (${formatPeriod(x.period)})`.trim();
+      const bullets = (x.highlights ?? []).map((h) => `• ${h}`).join("\n");
+      return bullets ? `${line}\n${bullets}` : line;
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  const projects = (data.projects_and_activities ?? [])
+    .map((x) => {
+      const line = `${x.project ?? ""} | ${x.role ?? ""} (${formatPeriod(x.period)})`.trim();
+      const bullets = (x.details ?? []).map((d) => `• ${d}`).join("\n");
+      return bullets ? `${line}\n${bullets}` : line;
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  const skillArrays = data.skills ? Object.values(data.skills).filter((v): v is string[] => Array.isArray(v)) : [];
+  const skills = skillArrays.flat().filter(Boolean).join(", ");
+
+  return { summary, education, experience, projects, skills };
+}
 
 const SECTION_KEYS = ["summary", "education", "experience", "projects", "skills"] as const;
 const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
@@ -47,6 +127,27 @@ export default function EditResumePage() {
   const handleLoadTemplate = () => {
     if (typeof window !== "undefined" && !window.confirm("저장된 'About Me' 형식 템플릿으로 덮어쓸까요? (현재 내용은 유지되지 않아요)")) return;
     setSections({ ...RESUME_TEMPLATE_ABOUT_ME.sections });
+  };
+
+  const handleLoadMyCv = () => {
+    if (typeof window !== "undefined" && !window.confirm("mycv.json 내용으로 이력서 섹션을 덮어쓸까요? (이름·이메일·연락처도 함께 반영돼요)")) return;
+    const data = MYCV_JSON as MyCvData;
+    const nextSections = mycvToResumeSections(data);
+    setSections(nextSections);
+    const p = data.profile;
+    if (p?.contact || p?.name_kr || p?.name_en) {
+      const name = [p.name_kr, p.name_en].filter(Boolean).join(" ") || undefined;
+      const email = p.contact?.email;
+      const phone = (p.contact?.phone ?? "").replace(/\D/g, "");
+      updateProfile({
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(phone && { phone }),
+        resumeSections: nextSections,
+      });
+    } else {
+      updateProfile({ resumeSections: nextSections });
+    }
   };
 
   const handlePdfDownload = () => {
@@ -101,6 +202,10 @@ export default function EditResumePage() {
           <Button variant="outline" className="rounded-xl" onClick={handleLoadTemplate}>
             <FileText className="w-4 h-4 mr-2" />
             About Me 형식 불러오기
+          </Button>
+          <Button variant="outline" className="rounded-xl" onClick={handleLoadMyCv}>
+            <FileJson className="w-4 h-4 mr-2" />
+            mycv.json 불러오기
           </Button>
           <Button variant="outline" className="rounded-xl" onClick={handlePreview}>
             <Eye className="w-4 h-4 mr-2" />

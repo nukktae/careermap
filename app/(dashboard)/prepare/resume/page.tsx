@@ -15,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText } from "lucide-react";
+import Link from "next/link";
+import { FileText, Target } from "lucide-react";
 
 const LANGUAGE_OPTIONS = [
   { value: "ko-formal", label: "한국어 경어체" },
@@ -155,6 +156,11 @@ function PrepareResumeContent() {
     },
   };
 
+  const validJobId =
+    jobParam != null && urlJobId != null && !Number.isNaN(urlJobId)
+      ? urlJobId
+      : null;
+
   const jobs: JobDetail[] =
     hasUrlJobNotInList && urlJobId != null
       ? [syntheticJob, ...jobsFromData]
@@ -199,6 +205,30 @@ function PrepareResumeContent() {
   const copyAfter = () => {
     if (result?.after) navigator.clipboard.writeText(result.after);
   };
+
+  if (!validJobId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-1">
+            이력서 최적화
+          </h1>
+          <p className="text-foreground-secondary">
+            지원 직무에 맞게 문장을 다듬고 키워드와 성과를 강조하세요. 위에서 저장한 채용을 선택하거나 아래에서 채용 찾기로 이동하세요.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-8 text-center">
+          <Target className="mx-auto h-12 w-12 text-foreground-muted mb-4" />
+          <p className="text-foreground-secondary mb-4">
+            비교할 채용을 선택해 주세요
+          </p>
+          <Button asChild>
+            <Link href="/jobs">채용 찾기</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

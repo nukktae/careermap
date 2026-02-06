@@ -123,7 +123,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-success-500" />
-                <span className="text-sm text-foreground-secondary">지원 가능</span>
+                <span className="text-sm text-foreground-secondary">적정 지원</span>
               </div>
               <span className="text-sm font-semibold text-success-600 dark:text-success-400">
                 {userData.matchSummary.applyNow}개
@@ -141,7 +141,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-error-500" />
-                <span className="text-sm text-foreground-secondary">도전 목표</span>
+                <span className="text-sm text-foreground-secondary">지원 위험</span>
               </div>
               <span className="text-sm font-semibold text-error-600 dark:text-error-400">
                 {userData.matchSummary.stretchGoal}개

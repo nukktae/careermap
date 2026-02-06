@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Building2, ChevronRight } from "lucide-react";
 import { getJobById } from "@/lib/data/jobs";
+import { useSavedJobs } from "@/lib/saved-jobs-context";
 import { LINKAREER_ID_OFFSET } from "@/lib/data/linkareer";
 
 const prepareTabs = [
@@ -55,20 +56,125 @@ function useSelectedJobLabel(jobId: number | null): JobLabel | null | "loading" 
   return "loading";
 }
 
+/** Fetch company/title for saved job IDs (Linkareer only; local jobs use getJobById). */
+function useSavedJobLabels(jobIds: number[]): Record<number, JobLabel | "loading"> {
+  const [labels, setLabels] = useState<Record<number, JobLabel>>({});
+
+  useEffect(() => {
+    const linkareerIds = jobIds.filter(
+      (id) => !Number.isNaN(id) && id >= LINKAREER_ID_OFFSET
+    );
+    if (linkareerIds.length === 0) {
+      setLabels({});
+      return;
+    }
+    let cancelled = false;
+    const activityIds = linkareerIds.map((id) => ({
+      jobId: id,
+      activityId: String(id - LINKAREER_ID_OFFSET),
+    }));
+    Promise.all(
+      activityIds.map(({ jobId, activityId }) =>
+        fetch(`/api/linkareer/activity/${activityId}`)
+          .then((r) =>
+            r.ok
+              ? (r.json() as Promise<{
+                  jobPosting?: {
+                    title?: string;
+                    hiringOrganization?: { name?: string };
+                  };
+                }>)
+              : null
+          )
+          .then((data) => {
+            if (cancelled) return { jobId, company: "", title: "" };
+            const company =
+              data?.jobPosting?.hiringOrganization?.name ?? "해당 회사";
+            const title = data?.jobPosting?.title ?? `채용 #${jobId}`;
+            return { jobId, company, title };
+          })
+          .catch(() => ({
+            jobId,
+            company: "Linkareer",
+            title: `채용 #${activityId}`,
+          }))
+      )
+    ).then((results) => {
+      if (cancelled) return;
+      const next: Record<number, JobLabel> = {};
+      results.forEach((r) => {
+        next[r.jobId] = { company: r.company, title: r.title };
+      });
+      setLabels(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [jobIds.join(",")]);
+
+  const result: Record<number, JobLabel | "loading"> = {};
+  jobIds.forEach((id) => {
+    const local = getJobById(id);
+    if (local) {
+      result[id] = { company: local.company, title: local.title };
+    } else if (id >= LINKAREER_ID_OFFSET) {
+      result[id] = labels[id] ?? "loading";
+    } else {
+      result[id] = { company: "선택한 채용", title: `채용 #${id}` };
+    }
+  });
+  return result;
+}
+
 export function PrepareTabs() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { savedWithDates } = useSavedJobs();
   const jobParam = searchParams.get("job");
   const jobId = jobParam != null ? parseInt(jobParam, 10) : null;
   const validJobId = jobId != null && !Number.isNaN(jobId) ? jobId : null;
   const query = validJobId != null ? `?job=${validJobId}` : "";
   const showTabs = pathname !== "/prepare" && pathname.startsWith("/prepare/");
   const jobLabel = useSelectedJobLabel(validJobId);
+  const savedJobIds = savedWithDates.map((e) => e.jobId);
+  const savedLabels = useSavedJobLabels(savedJobIds);
 
   if (!showTabs) return null;
 
   return (
     <div className="space-y-3">
+      {validJobId == null && savedJobIds.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-foreground-muted">
+            저장한 채용에서 선택
+          </p>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+            {savedJobIds.map((id) => {
+              const labelData = savedLabels[id];
+              const label =
+                labelData === "loading"
+                  ? "불러오는 중…"
+                  : labelData
+                    ? `${labelData.company} · ${labelData.title}`
+                    : `채용 #${id}`;
+              return (
+                <Link
+                  key={id}
+                  href={`${pathname}?job=${id}`}
+                  className="shrink-0 rounded-xl border border-border bg-card px-4 py-3 hover:border-primary-300 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 transition-colors min-w-[200px] max-w-[280px]"
+                >
+                  <p className="font-medium text-foreground truncate text-sm">
+                    {label}
+                  </p>
+                  <p className="text-xs text-foreground-muted mt-0.5">
+                    이 채용으로 준비하기 →
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {validJobId != null && (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="flex items-center gap-3 px-4 py-3">

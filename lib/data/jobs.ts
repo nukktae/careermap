@@ -3,6 +3,11 @@
  * Used by Job Discovery, Job Detail, Saved Jobs, and modals.
  */
 
+import {
+  computeMatchedMissing,
+  extractSkillLikeTokens,
+} from "./prepare";
+
 export type MatchBadge = "apply" | "prep" | "stretch";
 export type JobTypeValue = "fulltime" | "intern" | "contract";
 export type CompanyTypeValue = "대기업" | "공기업" | "스타트업" | "외국계";
@@ -630,6 +635,35 @@ const JOBS: JobDetail[] = [
     },
   },
 ];
+
+/**
+ * Compute match %, badge, matchedSkills, missingSkills from profile skills (e.g. from CV / mycv.json).
+ * Use this so job cards reflect comparison against the user's actual CV.
+ */
+export function enrichJobWithProfileMatch<T extends Job>(
+  job: T,
+  profileSkills: string[]
+): T {
+  if (profileSkills.length === 0) return job;
+  let requiredTokens: string[];
+  const withReqs = job as Job & { requirements?: string[]; preferred?: string[] };
+  if (Array.isArray(withReqs.requirements) || Array.isArray(withReqs.preferred)) {
+    const lines = [
+      ...(withReqs.requirements ?? []),
+      ...(withReqs.preferred ?? []),
+    ];
+    requiredTokens = extractSkillLikeTokens(lines);
+  } else {
+    requiredTokens = [...job.matchedSkills, ...job.missingSkills].filter(Boolean);
+  }
+  if (requiredTokens.length === 0) return job;
+  const { matched, missing } = computeMatchedMissing(requiredTokens, profileSkills);
+  const total = matched.length + missing.length;
+  const match = total > 0 ? Math.round((matched.length / total) * 100) : 0;
+  const badge: MatchBadge =
+    match >= 85 ? "apply" : match >= 60 ? "prep" : "stretch";
+  return { ...job, match, badge, matchedSkills: matched, missingSkills: missing };
+}
 
 export function getJobs(): JobDetail[] {
   return [...JOBS];

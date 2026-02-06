@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppIcon } from "@/components/ui/app-icon";
 import { getJobs } from "@/lib/data/jobs";
+import { Target } from "lucide-react";
 import {
   getCoverLetterPrompts,
   getCoverLetterGuidance,
@@ -23,6 +25,10 @@ function PrepareCoverLetterContent() {
   const jobs = getJobs();
   const jobParam = searchParams.get("job");
   const urlJobId = jobParam ? parseInt(jobParam, 10) : null;
+  const validJobId =
+    jobParam != null && urlJobId != null && !Number.isNaN(urlJobId)
+      ? urlJobId
+      : null;
   const initialCompanyId =
     urlJobId != null &&
     !Number.isNaN(urlJobId) &&
@@ -35,6 +41,30 @@ function PrepareCoverLetterContent() {
   const [customPrompt, setCustomPrompt] = useState("");
   const numId = companyId ? parseInt(companyId, 10) : 1;
   const guidance = getCoverLetterGuidance(Number.isNaN(numId) ? 1 : numId);
+
+  if (!validJobId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-1">
+            자소서 가이드
+          </h1>
+          <p className="text-foreground-secondary">
+            회사·질문별 구조, 강조할 경험, 샘플 문장 가이드를 받으세요. 위에서 저장한 채용을 선택하거나 아래에서 채용 찾기로 이동하세요.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-8 text-center">
+          <Target className="mx-auto h-12 w-12 text-foreground-muted mb-4" />
+          <p className="text-foreground-secondary mb-4">
+            비교할 채용을 선택해 주세요
+          </p>
+          <Button asChild>
+            <Link href="/jobs">채용 찾기</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
