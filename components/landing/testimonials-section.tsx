@@ -41,15 +41,6 @@ const testimonials = [
   },
 ];
 
-const universities = [
-  { name: "서울대학교", logo: "SNU" },
-  { name: "연세대학교", logo: "연세" },
-  { name: "고려대학교", logo: "고려" },
-  { name: "KAIST", logo: "KAIST" },
-  { name: "포항공대", logo: "POSTECH" },
-  { name: "성균관대학교", logo: "성균관" },
-];
-
 export function TestimonialsSection() {
   return (
     <section id="testimonials" className="py-20 lg:py-32 bg-background-secondary">
@@ -111,23 +102,6 @@ export function TestimonialsSection() {
               </div>
             </div>
           ))}
-        </div>
-
-        {/* University Logos */}
-        <div className="text-center">
-          <p className="text-sm text-foreground-muted mb-6">
-            전국 주요 대학 학생들이 이용하고 있습니다
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-12">
-            {universities.map((uni) => (
-              <div
-                key={uni.name}
-                className="text-xl font-bold text-foreground-muted/50 hover:text-foreground-secondary transition-colors"
-              >
-                {uni.logo}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </section>

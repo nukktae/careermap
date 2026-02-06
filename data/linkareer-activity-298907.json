@@ -1,0 +1,49 @@
+{
+  "activityId": "298907",
+  "sourceUrl": "https://linkareer.com/activity/298907",
+  "fetchedAt": "2026-01-30T15:13:59.388Z",
+  "jobPosting": {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    "title": "[스노우] AI 서비스 콘텐츠 기획 체험형 인턴",
+    "datePosted": "2026-01-29T13:04:51.000Z",
+    "validThrough": "2026-02-08T14:59:59.999Z",
+    "employmentType": [
+      "INTERN"
+    ],
+    "experienceRequirements": [
+      "신입"
+    ],
+    "jobLocation": [
+      {
+        "@type": "Place",
+        "address": {
+          "@type": "PostalAddress",
+          "postalCode": "13561",
+          "streetAddress": "경기 성남시 분당구 불정로 6",
+          "addressLocality": "성남시 분당구",
+          "addressRegion": "경기",
+          "addressCountry": "KR"
+        }
+      }
+    ],
+    "hiringOrganization": {
+      "@type": "Organization",
+      "name": "스노우",
+      "sameAs": "https://snowcorp.com/",
+      "logo": "https://media-cdn.linkareer.com/activity_manager/logos/753278"
+    },
+    "description": "[스노우] AI 서비스 콘텐츠 기획 체험형 인턴\n[지원자격]\n모집직무: IT/인터넷\n근무지: 경기 분당구\n고용형태: 신입\n채용정보 상세 내용 및 즉시지원은 링커리어에서 가능합니다",
+    "educationRequirements": "학력무관",
+    "identifier": {
+      "@type": "PropertyValue",
+      "propertyID": "사업자등록번호",
+      "value": "786-87-00371"
+    },
+    "image": {
+      "@type": "ImageObject",
+      "contentUrl": "https://media-cdn.linkareer.com/activity_manager/logos/753278",
+      "caption": "[스노우] AI 서비스 콘텐츠 기획 체험형 인턴"
+    }
+  }
+}

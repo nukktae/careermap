@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export function CTASection() {
   return (
@@ -15,12 +15,6 @@ export function CTASection() {
 
       <div className="container-app relative">
         <div className="max-w-3xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-white text-sm font-medium mb-6">
-            <Sparkles className="w-4 h-4" />
-            <span>지금 시작하면 7일 무료</span>
-          </div>
-
           {/* Headline */}
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 text-balance">
             취업 준비, 더 이상 혼자 고민하지 마세요

@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { getJobs, filterJobs, DEFAULT_JOB_FILTERS, type JobFiltersState } from "@/lib/data/jobs";
+import {
+  mapLinkareerNodeToJob,
+  LINKAREER_ID_OFFSET,
+  type LinkareerResponse,
+} from "@/lib/data/linkareer";
 import { useSavedJobs } from "@/lib/saved-jobs-context";
 import { JobCard } from "@/components/jobs/job-card";
 import { JobFiltersModal } from "@/components/jobs/job-filters-modal";
+import type { Job } from "@/lib/data/jobs";
 
 function countActiveFilters(f: JobFiltersState): number {
   let n = 0;
@@ -26,7 +32,18 @@ export default function JobsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<JobFiltersState>(DEFAULT_JOB_FILTERS);
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
+  const [linkareerJobs, setLinkareerJobs] = useState<Job[]>([]);
   const { isSaved, toggleSaved } = useSavedJobs();
+
+  useEffect(() => {
+    fetch("/data/linkareer-recruits.json")
+      .then((res) => res.json())
+      .then((data: LinkareerResponse) => {
+        const nodes = data.data?.activities?.nodes ?? [];
+        setLinkareerJobs(nodes.map(mapLinkareerNodeToJob));
+      })
+      .catch(() => setLinkareerJobs([]));
+  }, []);
 
   const searchFiltered = jobs.filter(
     (job) =>
@@ -34,7 +51,17 @@ export default function JobsPage() {
       job.company.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const filteredJobs = filterJobs(searchFiltered, filters);
+  const linkareerSearchFiltered = linkareerJobs.filter(
+    (job) =>
+      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.company.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const displayJobs = [...filteredJobs, ...linkareerSearchFiltered];
   const activeFilterCount = countActiveFilters(filters);
+
+  function jobHref(job: Job): string {
+    return `/jobs/${job.id}`;
+  }
 
   const handleToggleSave = (jobId: number, e: React.MouseEvent) => {
     e.preventDefault();
@@ -47,7 +74,8 @@ export default function JobsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground mb-1">채용 찾기</h1>
         <p className="text-foreground-secondary">
-          내 프로필에 맞는 {jobs.length}개의 채용이 있어요
+          {jobs.length}개의 매칭 채용
+          {linkareerJobs.length > 0 && ` + ${linkareerJobs.length}건 인턴 (Linkareer)`}
         </p>
       </div>
 
@@ -88,7 +116,7 @@ export default function JobsPage() {
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-foreground-secondary">
-          {filteredJobs.length}개의 채용
+          {displayJobs.length}개의 채용
         </p>
         <select className="text-sm bg-transparent border border-border rounded-lg px-3 py-1.5 text-foreground">
           <option>매칭 점수순</option>
@@ -98,18 +126,18 @@ export default function JobsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredJobs.map((job) => (
+        {displayJobs.map((job) => (
           <JobCard
             key={job.id}
             job={job}
             isSaved={isSaved(job.id)}
             onToggleSave={handleToggleSave}
-            href={`/jobs/${job.id}`}
+            href={jobHref(job)}
           />
         ))}
       </div>
 
-      {filteredJobs.length === 0 && (
+      {displayJobs.length === 0 && (
         <div className="text-center py-12">
           <div className="w-16 h-16 rounded-full bg-background-secondary flex items-center justify-center mx-auto mb-4">
             <Search className="w-8 h-8 text-foreground-muted" />

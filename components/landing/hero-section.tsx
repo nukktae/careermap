@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Sparkles, Target, TrendingUp, CheckCircle } from "lucide-react";
+import { ArrowRight, Play, Target, TrendingUp } from "lucide-react";
 
 export function HeroSection() {
   return (
@@ -16,12 +16,6 @@ export function HeroSection() {
 
       <div className="container-app relative">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium mb-6 animate-fade-in">
-            <Sparkles className="w-4 h-4" />
-            <span>AI 기반 취업 준비 플랫폼</span>
-          </div>
-
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight tracking-tight mb-6 animate-fade-in-up text-balance">
             취업 준비,{" "}
@@ -49,22 +43,6 @@ export function HeroSection() {
                 작동 방식 보기
               </Link>
             </Button>
-          </div>
-
-          {/* Social Proof */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-foreground-secondary animate-fade-in-up stagger-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-success-500" />
-              <span>1,000+ 취업 성공</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-success-500" />
-              <span>서울대, 연세대, KAIST 학생 이용</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-success-500" />
-              <span>평균 매칭 정확도 92%</span>
-            </div>
           </div>
         </div>
 
@@ -197,19 +175,6 @@ export function HeroSection() {
                       준비 시작하기
                     </Button>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Floating elements */}
-            <div className="absolute -top-4 -right-4 bg-card rounded-xl p-4 shadow-lg border border-border animate-float hidden lg:block">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-success-100 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-success-600" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-foreground">면접 성공!</div>
-                  <div className="text-xs text-foreground-secondary">카카오 합격</div>
                 </div>
               </div>
             </div>
