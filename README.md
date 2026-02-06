@@ -55,3 +55,17 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+### Production backend (Onewave on Render)
+
+If your frontend is deployed on Vercel (e.g. **https://jobru.vercel.app**) and the Onewave API is on Render (**https://onewave-hackathon.onrender.com**):
+
+1. Open [Vercel Dashboard](https://vercel.com/dashboard) → your project (e.g. jobru).
+2. Go to **Settings** → **Environment Variables**.
+3. Add:
+   - **Name:** `ONEWAVE_API_URL`
+   - **Value:** `https://onewave-hackathon.onrender.com`
+   - **Environment:** Production (and Preview if you want preview deploys to use it too).
+4. Save and **redeploy** the project (Deployments → ⋮ on latest → Redeploy) so the new variable is picked up.
+
+After redeploy, the app will use the production backend for auth, resume analysis, and coffee-chat.
