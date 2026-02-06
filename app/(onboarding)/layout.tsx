@@ -1,11 +1,41 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth } from "@/lib/auth-context";
 
 export default function OnboardingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      const search = pathname ? `?redirect=${encodeURIComponent(pathname)}` : "";
+      router.replace(`/login${search}`);
+    }
+  }, [user, isLoading, pathname, router]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-foreground-secondary">
+            {isLoading ? "로딩 중..." : "로그인 페이지로 이동합니다."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

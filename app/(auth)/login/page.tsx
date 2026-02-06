@@ -2,20 +2,32 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, UserCircle2 } from "lucide-react";
 
-export default function LoginPage() {
+/** 운영진 전용: 클릭 시 해당 계정으로 바로 로그인됩니다. */
+const STAFF_CREDENTIAL = {
+  label: "운영진",
+  email: "anu.bn@yahoo.com",
+  password: "wasd123",
+};
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get("redirect");
+  const redirectTo = redirectParam ?? "/onboarding/resume";
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,31 +38,71 @@ export default function LoginPage() {
     if (!email || !password) return;
     setIsLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const supabase = createClient();
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const raw = data?.details ?? data?.error ?? "로그인에 실패했습니다.";
-        const msg = typeof raw === "string" ? raw : "이메일 또는 비밀번호가 올바르지 않습니다.";
+      if (authError) {
+        const msg = authError.message;
         const friendly =
-          /rate limit|too many requests/i.test(msg)
-            ? "요청이 너무 많습니다. 몇 분 후에 다시 시도해 주세요."
-            : msg;
+          /Invalid login credentials|invalid_credentials/i.test(msg)
+            ? "이메일 또는 비밀번호가 올바르지 않습니다."
+            : /rate limit|too many requests/i.test(msg)
+              ? "요청이 너무 많습니다. 몇 분 후에 다시 시도해 주세요."
+              : msg;
         setError(friendly);
         setIsLoading(false);
         return;
       }
-      const access_token = data?.access_token;
-      const refresh_token = data?.refresh_token;
-      if (access_token && refresh_token) {
-        const supabase = createClient();
-        await supabase.auth.setSession({ access_token, refresh_token });
+      if (authData?.session) {
+        const path =
+          redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+            ? redirectTo
+            : "/onboarding/resume";
+        router.push(path);
+        router.refresh();
+      } else {
+        setError("로그인에 실패했습니다. 다시 시도해 주세요.");
+        setIsLoading(false);
       }
-      router.push("/dashboard");
-      router.refresh();
+    } catch {
+      setError("로그인 중 오류가 발생했습니다.");
+      setIsLoading(false);
+    }
+  };
+
+  const handleStaffLogin = async (email: string, password: string) => {
+    setError(null);
+    if (emailInputRef.current) emailInputRef.current.value = email;
+    if (passwordInputRef.current) passwordInputRef.current.value = password;
+    setIsLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (authError) {
+        setError(
+          /Invalid login credentials|invalid_credentials/i.test(authError.message)
+            ? "이메일 또는 비밀번호가 올바르지 않습니다."
+            : authError.message
+        );
+        setIsLoading(false);
+        return;
+      }
+      if (authData?.session) {
+        const path =
+          redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+            ? redirectTo
+            : "/onboarding/resume";
+        router.push(path);
+        router.refresh();
+      } else {
+        setError("로그인에 실패했습니다. 다시 시도해 주세요.");
+        setIsLoading(false);
+      }
     } catch {
       setError("로그인 중 오류가 발생했습니다.");
       setIsLoading(false);
@@ -97,6 +149,7 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
                 <Input
+                  ref={emailInputRef}
                   id="email"
                   name="email"
                   type="email"
@@ -121,6 +174,7 @@ export default function LoginPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
                 <Input
+                  ref={passwordInputRef}
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
@@ -186,6 +240,34 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          {/* 운영진 전용: 클릭 한 번으로 로그인 */}
+          <div className="mt-8 pt-6 border-t border-border">
+            <p className="text-xs font-medium text-foreground-muted uppercase tracking-wider mb-3">
+              운영진 전용
+            </p>
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() =>
+                handleStaffLogin(STAFF_CREDENTIAL.email, STAFF_CREDENTIAL.password)
+              }
+              className="flex items-center gap-3 w-full p-3 rounded-xl border border-border bg-card hover:bg-muted/50 hover:border-primary-200 dark:hover:border-primary-800 transition-colors text-left disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <div className="shrink-0 w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center">
+                <UserCircle2 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="font-medium text-foreground block truncate">
+                  {STAFF_CREDENTIAL.label}
+                </span>
+                <span className="text-xs text-foreground-muted truncate block">
+                  {STAFF_CREDENTIAL.email}
+                </span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-foreground-muted shrink-0" />
+            </button>
+          </div>
+
           {/* Sign up link */}
           <p className="text-center mt-8 text-foreground-secondary">
             아직 계정이 없으신가요?{" "}
@@ -222,5 +304,21 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-pulse text-foreground-muted">로딩 중...</div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

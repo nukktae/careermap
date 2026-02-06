@@ -17,6 +17,7 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const passwordRequirements = [
     { text: "최소 8자 이상", met: password.length >= 8 },
@@ -27,6 +28,7 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     const form = e.currentTarget;
     const name = (form.elements.namedItem("name") as HTMLInputElement).value.trim();
     const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
@@ -34,31 +36,37 @@ export default function SignUpPage() {
     if (!email || !passwordValue) return;
     setIsLoading(true);
     try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: passwordValue, name: name || undefined }),
+      const supabase = createClient();
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password: passwordValue,
+        options: {
+          data: name ? { name } : undefined,
+          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined,
+        },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const raw = data?.details ?? data?.error ?? "가입에 실패했습니다.";
-        const msg = typeof raw === "string" ? raw : "가입에 실패했습니다.";
+      if (authError) {
+        const msg = authError.message;
         const friendly =
-          /rate limit|too many requests/i.test(msg)
-            ? "요청이 너무 많습니다. 몇 분 후에 다시 시도해 주세요."
-            : msg;
+          /User already registered|already been registered/i.test(msg)
+            ? "이미 가입된 이메일입니다. 로그인해 주세요."
+            : /rate limit|too many requests/i.test(msg)
+              ? "요청이 너무 많습니다. 몇 분 후에 다시 시도해 주세요."
+              : msg;
         setError(friendly);
         setIsLoading(false);
         return;
       }
-      const access_token = data?.access_token;
-      const refresh_token = data?.refresh_token;
-      if (access_token && refresh_token) {
-        const supabase = createClient();
-        await supabase.auth.setSession({ access_token, refresh_token });
+      if (authData?.session) {
+        router.push("/welcome");
+        router.refresh();
+      } else if (authData?.user && !authData.session) {
+        setSuccessMessage("가입 완료. 이메일 확인 링크를 보냈습니다. 메일함을 확인해 주세요.");
+        setIsLoading(false);
+      } else {
+        setError("가입에 실패했습니다. 다시 시도해 주세요.");
+        setIsLoading(false);
       }
-      router.push("/welcome");
-      router.refresh();
     } catch {
       setError("가입 중 오류가 발생했습니다.");
       setIsLoading(false);
@@ -134,6 +142,11 @@ export default function SignUpPage() {
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-error-100 text-error-700 dark:bg-error-900/30 dark:text-error-400 text-sm">
               {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="mb-4 p-3 rounded-lg bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-sm">
+              {successMessage}
             </div>
           )}
           {/* Form */}

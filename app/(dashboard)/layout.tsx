@@ -44,10 +44,18 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      const search = pathname ? `?redirect=${encodeURIComponent(pathname)}` : "";
+      router.replace(`/login${search}`);
+    }
+  }, [user, isLoading, pathname, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -70,6 +78,19 @@ export default function DashboardLayout({
       return next;
     });
   };
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-foreground-secondary">
+            {isLoading ? "로딩 중..." : "로그인 페이지로 이동합니다."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Sidebar: collapsed = w-16 (icons only), expanded = w-64 (icons + labels). Toggle persists in localStorage.
   return (

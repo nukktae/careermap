@@ -336,6 +336,7 @@ export default function ProfileReviewPage() {
       setIsSubmitting(false);
     }
     router.push("/dashboard");
+    router.refresh();
   };
 
   const ConfidenceBadge = ({ confidence }: { confidence: number }) => {
